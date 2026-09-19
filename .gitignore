@@ -1,0 +1,15 @@
+.DS_Store
+__pycache__/
+*.py[cod]
+.venv/
+dist/
+build/
+*.egg-info/
+
+# Runtime logs and local process files
+*.log
+*.pid
+.menu-app.pid
+
+# Local Relay configuration lives outside the repo by default.
+.config/

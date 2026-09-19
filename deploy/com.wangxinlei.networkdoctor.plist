@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.wangxinlei.networkdoctor</string>
+    <key>ProgramArguments</key>
+    <array>
+        <string>/Users/wangxinlei/Library/Application Support/网络助手/.venv/bin/python</string>
+        <string>/Users/wangxinlei/Library/Application Support/网络助手/network-doctor-menu.py</string>
+    </array>
+    <key>WorkingDirectory</key>
+    <string>/Users/wangxinlei/Library/Application Support/网络助手</string>
+    <key>RunAtLoad</key>
+    <true/>
+    <key>KeepAlive</key>
+    <false/>
+    <key>StandardOutPath</key>
+    <string>/Users/wangxinlei/Library/Logs/network-doctor-launchd.log</string>
+    <key>StandardErrorPath</key>
+    <string>/Users/wangxinlei/Library/Logs/network-doctor-launchd.log</string>
+</dict>
+</plist>

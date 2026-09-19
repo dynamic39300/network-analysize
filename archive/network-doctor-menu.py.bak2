@@ -1,0 +1,558 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+网络诊断与修复工具 - 菜单栏版本 (Network Doctor Menu Bar)
+版本: v2.0
+功能: 菜单栏实时显示网络状态，一键检测/修复，后台定时刷新
+"""
+
+import rumps
+import subprocess
+import threading
+import time
+import json
+import os
+from datetime import datetime
+
+# ==================== 配置 ====================
+APP_NAME = "网络助手"
+CHECK_INTERVAL = 30  # 后台检测间隔（秒）
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+LOG_FILE = os.path.expanduser("~/Library/Logs/网络助手.log")
+
+# 状态图标（使用 emoji，简单有效）
+ICON_GREEN = "🟢"
+ICON_YELLOW = "🟡"
+ICON_RED = "🔴"
+ICON_GRAY = "⚪"
+ICON_LOADING = "🔄"
+
+# ==================== 工具函数 ====================
+
+def log(msg):
+    """写日志"""
+    try:
+        with open(LOG_FILE, 'a', encoding='utf-8') as f:
+            f.write(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] {msg}\n")
+    except:
+        pass
+
+def run_cmd(cmd, timeout=10):
+    """执行 shell 命令，返回输出"""
+    try:
+        result = subprocess.run(
+            cmd, shell=True, capture_output=True, text=True, timeout=timeout
+        )
+        return result.stdout.strip()
+    except subprocess.TimeoutExpired:
+        return ""
+    except Exception as e:
+        log(f"命令执行失败: {cmd}, 错误: {e}")
+        return ""
+
+def run_cmd_with_code(cmd, timeout=10):
+    """执行 shell 命令，返回 (输出, 返回码)"""
+    try:
+        result = subprocess.run(
+            cmd, shell=True, capture_output=True, text=True, timeout=timeout
+        )
+        return result.stdout.strip(), result.returncode
+    except subprocess.TimeoutExpired:
+        return "", -1
+    except Exception as e:
+        log(f"命令执行失败: {cmd}, 错误: {e}")
+        return "", -1
+
+# ==================== 网络检测类 ====================
+
+class NetworkChecker:
+    """网络状态检测器"""
+    
+    def __init__(self):
+        self.status = {}
+        self.issues = []
+        self.last_check = None
+        self.checking = False
+    
+    def check_all(self):
+        """执行完整检测"""
+        if self.checking:
+            return
+        self.checking = True
+        try:
+            self.issues = []
+            self._check_wifi()
+            self._check_vpn()
+            self._check_clashx()
+            self._check_dns()
+            self._check_ipv6()
+            self._check_proxy()
+            self._check_reachability()
+            self.last_check = datetime.now()
+            log(f"检测完成，发现 {len(self.issues)} 个问题")
+        except Exception as e:
+            log(f"检测异常: {e}")
+        finally:
+            self.checking = False
+    
+    def _check_wifi(self):
+        """检测 Wi-Fi 状态"""
+        wifi_ip = run_cmd("ifconfig en0 2>/dev/null | grep 'inet ' | awk '{print $2}'")
+        wifi_network = run_cmd("networksetup -getairportnetwork en0 2>/dev/null | sed 's/Current Wi-Fi Network: //'")
+        
+        if wifi_ip:
+            self.status['wifi'] = 'ok'
+            self.status['wifi_ip'] = wifi_ip
+            self.status['wifi_network'] = wifi_network if wifi_network and 'not associated' not in wifi_network else '未知'
+        else:
+            self.status['wifi'] = 'error'
+            self.status['wifi_ip'] = ''
+            self.status['wifi_network'] = ''
+            self.issues.append(('high', 'Wi-Fi 未连接或无 IP 地址', '检查 Wi-Fi 开关和网络连接'))
+    
+    def _check_vpn(self):
+        """检测公司 VPN 状态"""
+        vpn_process = run_cmd("pgrep -f -i UniVPN > /dev/null 2>&1 && echo 'running' || echo 'not'")
+        vpn_ip = run_cmd("ifconfig utun4 2>/dev/null | grep 'inet ' | awk '{print $2}'")
+        
+        if vpn_process == 'running' and vpn_ip:
+            self.status['vpn'] = 'ok'
+            self.status['vpn_ip'] = vpn_ip
+        elif vpn_process == 'running':
+            self.status['vpn'] = 'warning'
+            self.status['vpn_ip'] = ''
+            self.issues.append(('high', 'VPN 假连接：进程在运行但隧道未建立', '断开 VPN 重新连接'))
+        else:
+            self.status['vpn'] = 'off'
+            self.status['vpn_ip'] = ''
+    
+    def _check_clashx(self):
+        """检测 ClashX 状态"""
+        clash_process = run_cmd("pgrep -f -i clash > /dev/null 2>&1 && echo 'running' || echo 'not'")
+        port_listen = run_cmd("lsof -nP -iTCP:7890 -sTCP:LISTEN 2>/dev/null | head -1")
+        
+        if clash_process == 'running' and port_listen:
+            self.status['clashx'] = 'ok'
+        elif clash_process == 'running':
+            self.status['clashx'] = 'warning'
+            self.issues.append(('medium', 'ClashX 运行但代理端口未监听', '重启 ClashX 或检查配置'))
+        else:
+            self.status['clashx'] = 'off'
+    
+    def _check_dns(self):
+        """检测 DNS 配置"""
+        dns_servers = run_cmd("networksetup -getdnsservers Wi-Fi 2>/dev/null | grep -v 'There aren' | tr '\\n' ' '")
+        self.status['dns_servers'] = dns_servers
+        
+        has_company_dns = '10.0.0.66' in dns_servers
+        has_public_dns = '223.5.5.5' in dns_servers or '114.114.114.114' in dns_servers
+        
+        if self.status.get('vpn') == 'ok':
+            # VPN 连接时，应该只用公司 DNS
+            if has_public_dns:
+                self.status['dns'] = 'warning'
+                self.issues.append(('medium', 'DNS 混合配置：VPN 连接时混入公共 DNS，导致外网不稳定', '切换为仅公司 DNS (10.0.0.66, 10.0.0.68)'))
+            elif has_company_dns:
+                self.status['dns'] = 'ok'
+            else:
+                self.status['dns'] = 'error'
+                self.issues.append(('high', 'VPN 连接但 DNS 未切换到公司 DNS', '切换为公司 DNS (10.0.0.66, 10.0.0.68)'))
+        else:
+            # VPN 未连接时，应该用公共 DNS
+            if has_company_dns and not has_public_dns:
+                self.status['dns'] = 'warning'
+                self.issues.append(('medium', 'VPN 断开但 DNS 残留公司 DNS', '恢复公共 DNS (223.5.5.5, 114.114.114.114)'))
+            else:
+                self.status['dns'] = 'ok'
+    
+    def _check_ipv6(self):
+        """检测 IPv6 状态"""
+        ipv6_status = run_cmd("networksetup -getinfo Wi-Fi 2>/dev/null | grep -i 'IPv6' | awk -F': ' '{print $2}'")
+        
+        if ipv6_status and ipv6_status != 'Off':
+            self.status['ipv6'] = 'on'
+            self.issues.append(('medium', 'IPv6 已启用，可能导致 AI 工具绕过代理触发地域限制', '禁用 Wi-Fi IPv6'))
+        else:
+            self.status['ipv6'] = 'off'
+    
+    def _check_proxy(self):
+        """检测系统代理状态"""
+        http_enable = run_cmd("scutil --proxy 2>/dev/null | grep 'HTTPEnable' | awk '{print $3}'")
+        https_enable = run_cmd("scutil --proxy 2>/dev/null | grep 'HTTPSEnable' | awk '{print $3}'")
+        
+        proxy_on = http_enable == '1' or https_enable == '1'
+        self.status['proxy'] = 'on' if proxy_on else 'off'
+        
+        if proxy_on and self.status.get('clashx') == 'off':
+            self.issues.append(('high', '代理残留：ClashX 未运行但系统代理开启', '关闭系统代理'))
+    
+    def _check_reachability(self):
+        """检测关键网站连通性"""
+        # 国内网站
+        baidu_code = run_cmd("curl -s --max-time 5 --noproxy '*' -o /dev/null -w '%{http_code}' https://www.baidu.com 2>/dev/null")
+        self.status['baidu'] = 'ok' if baidu_code and baidu_code != '000' else 'error'
+        
+        # 国外网站
+        google_code = run_cmd("curl -s --max-time 8 --noproxy '*' -o /dev/null -w '%{http_code}' https://www.google.com 2>/dev/null")
+        self.status['google'] = 'ok' if google_code and google_code != '000' else 'error'
+        
+        # AI 官方 API
+        openai_code = run_cmd("curl -s --max-time 8 --noproxy '*' -o /dev/null -w '%{http_code}' https://api.openai.com/v1/models 2>/dev/null")
+        self.status['openai'] = 'ok' if openai_code and openai_code != '000' else 'error'
+    
+    def get_overall_status(self):
+        """获取整体状态：good / warning / error"""
+        if not self.last_check:
+            return 'unknown'
+        
+        high_issues = [i for i in self.issues if i[0] == 'high']
+        medium_issues = [i for i in self.issues if i[0] == 'medium']
+        
+        if high_issues:
+            return 'error'
+        elif medium_issues:
+            return 'warning'
+        else:
+            return 'good'
+    
+    def get_status_summary(self):
+        """获取状态摘要文本"""
+        lines = []
+        
+        # Wi-Fi
+        wifi_icon = ICON_GREEN if self.status.get('wifi') == 'ok' else ICON_RED
+        wifi_name = self.status.get('wifi_network', '未知')
+        lines.append(f"{wifi_icon} Wi-Fi: {wifi_name}")
+        
+        # VPN
+        if self.status.get('vpn') == 'ok':
+            lines.append(f"{ICON_GREEN} VPN: 已连接 ({self.status.get('vpn_ip', '')})")
+        elif self.status.get('vpn') == 'warning':
+            lines.append(f"{ICON_YELLOW} VPN: 假连接")
+        else:
+            lines.append(f"{ICON_GRAY} VPN: 未连接")
+        
+        # ClashX
+        if self.status.get('clashx') == 'ok':
+            lines.append(f"{ICON_GREEN} ClashX: 运行中")
+        elif self.status.get('clashx') == 'warning':
+            lines.append(f"{ICON_YELLOW} ClashX: 端口异常")
+        else:
+            lines.append(f"{ICON_GRAY} ClashX: 未运行")
+        
+        # DNS
+        dns_icon = ICON_GREEN if self.status.get('dns') == 'ok' else ICON_YELLOW
+        dns_servers = self.status.get('dns_servers', '')[:30]
+        lines.append(f"{dns_icon} DNS: {dns_servers}...")
+        
+        # 代理
+        proxy_icon = ICON_GREEN if self.status.get('proxy') == 'off' else ICON_YELLOW
+        proxy_status = '已关闭' if self.status.get('proxy') == 'off' else '已开启'
+        lines.append(f"{proxy_icon} 代理: {proxy_status}")
+        
+        # 连通性
+        baidu_icon = ICON_GREEN if self.status.get('baidu') == 'ok' else ICON_RED
+        google_icon = ICON_GREEN if self.status.get('google') == 'ok' else ICON_RED
+        lines.append(f"{baidu_icon} 百度 | {google_icon} Google")
+        
+        # 问题统计
+        if self.issues:
+            high_count = len([i for i in self.issues if i[0] == 'high'])
+            medium_count = len([i for i in self.issues if i[0] == 'medium'])
+            lines.append("")
+            lines.append(f"⚠️  发现 {high_count} 个严重问题，{medium_count} 个警告")
+        
+        # 最后检测时间
+        if self.last_check:
+            lines.append("")
+            lines.append(f"最后检测: {self.last_check.strftime('%H:%M:%S')}")
+        
+        return lines
+    
+    def fix_all(self):
+        """一键修复所有问题"""
+        fixed = []
+        
+        for issue in self.issues:
+            severity, desc, fix_suggestion = issue
+            
+            if 'DNS' in desc and '混合' in desc:
+                run_cmd("networksetup -setdnsservers Wi-Fi 10.0.0.66 10.0.0.68")
+                fixed.append("DNS 已切换为公司 DNS")
+            elif 'DNS' in desc and ('未切换' in desc or '残留' in desc):
+                if self.status.get('vpn') == 'ok':
+                    run_cmd("networksetup -setdnsservers Wi-Fi 10.0.0.66 10.0.0.68")
+                    fixed.append("DNS 已切换为公司 DNS")
+                else:
+                    run_cmd("networksetup -setdnsservers Wi-Fi 223.5.5.5 114.114.114.114")
+                    fixed.append("DNS 已恢复为公共 DNS")
+            elif '代理残留' in desc:
+                run_cmd("networksetup -setwebproxystate Wi-Fi off")
+                run_cmd("networksetup -setsecurewebproxystate Wi-Fi off")
+                run_cmd("networksetup -setsocksfirewallproxystate Wi-Fi off")
+                fixed.append("系统代理已关闭")
+            elif 'IPv6' in desc:
+                run_cmd("networksetup -setv6off Wi-Fi")
+                fixed.append("IPv6 已禁用")
+        
+        # 始终清空 DNS 缓存
+        run_cmd("dscacheutil -flushcache")
+        run_cmd("killall -HUP mDNSResponder")
+        fixed.append("DNS 缓存已清空")
+        
+        log(f"修复完成: {fixed}")
+        return fixed
+
+# ==================== 菜单栏应用类 ====================
+
+class NetworkDoctorApp(rumps.App):
+    """网络诊断菜单栏应用"""
+    
+    def __init__(self):
+        super().__init__(APP_NAME, icon=None, title=f"{ICON_GRAY}检测中")
+        
+        self.checker = NetworkChecker()
+        self.checking = False
+        
+        # 构建菜单
+        self.menu = [
+            rumps.MenuItem("状态检测中...", callback=None),
+            None,  # 分隔线
+            rumps.MenuItem(f"🔍 一键检测", callback=self.on_manual_check),
+            rumps.MenuItem(f"🔧 一键修复", callback=self.on_fix),
+            None,
+            rumps.MenuItem(f"📋 查看详细报告", callback=self.on_show_report),
+            None,
+            rumps.MenuItem(f"⚙️ 关于", callback=self.on_about),
+            None,
+            rumps.MenuItem(f"🚪 退出", callback=self.on_quit),
+        ]
+        
+        # 启动时立即检测一次
+        self.run_check()
+        
+        # 启动后台定时检测线程
+        self.background_thread = threading.Thread(target=self._background_loop, daemon=True)
+        self.background_thread.start()
+        
+        log("菜单栏应用启动")
+    
+    def _background_loop(self):
+        """后台定时检测循环"""
+        while True:
+            time.sleep(CHECK_INTERVAL)
+            self.run_check()
+    
+    def run_check(self):
+        """执行检测并更新 UI"""
+        if self.checking:
+            return
+        self.checking = True
+        
+        def _do_check():
+            try:
+                self.checker.check_all()
+                self._update_ui()
+            except Exception as e:
+                log(f"检测线程异常: {e}")
+            finally:
+                self.checking = False
+        
+        threading.Thread(target=_do_check, daemon=True).start()
+    
+    def _update_ui(self):
+        """更新菜单栏图标和菜单"""
+        overall = self.checker.get_overall_status()
+        
+        # 更新标题栏图标
+        if overall == 'good':
+            self.title = f"{ICON_GREEN}正常"
+        elif overall == 'warning':
+            self.title = f"{ICON_YELLOW}警告"
+        elif overall == 'error':
+            self.title = f"{ICON_RED}异常"
+        else:
+            self.title = f"{ICON_GRAY}未知"
+        
+        # 更新菜单内容
+        summary_lines = self.checker.get_status_summary()
+        
+        # 清空并重建菜单（保留操作项）
+        self.menu.clear()
+        
+        # 状态摘要
+        for line in summary_lines:
+            if line == "":
+                self.menu.add(None)
+            else:
+                item = rumps.MenuItem(line, callback=None)
+                self.menu.add(item)
+        
+        self.menu.add(None)
+        
+        # 操作项
+        self.menu.add(rumps.MenuItem("🔍 一键检测", callback=self.on_manual_check))
+        self.menu.add(rumps.MenuItem("🔧 一键修复", callback=self.on_fix))
+        self.menu.add(None)
+        self.menu.add(rumps.MenuItem("📋 查看详细报告", callback=self.on_show_report))
+        self.menu.add(None)
+        self.menu.add(rumps.MenuItem("⚙️ 关于", callback=self.on_about))
+        self.menu.add(None)
+        self.menu.add(rumps.MenuItem("🚪 退出", callback=self.on_quit))
+    
+    @rumps.clicked("🔍 一键检测")
+    def on_manual_check(self, _):
+        """手动触发检测"""
+        try:
+            self.title = f"{ICON_LOADING}检测中"
+            self.run_check()
+            # 等待检测完成（最多 15 秒）
+            for _ in range(30):
+                if not self.checking:
+                    break
+                time.sleep(0.5)
+            rumps.alert(
+                title="检测完成",
+                message=f"网络状态已更新\n\n发现 {len(self.checker.issues)} 个问题",
+                ok="好的"
+            )
+        except Exception as e:
+            log(f"一键检测异常: {e}")
+            rumps.alert(title="检测失败", message=f"错误: {str(e)[:200]}", ok="好的")
+    
+    @rumps.clicked("🔧 一键修复")
+    def on_fix(self, _):
+        """一键修复"""
+        try:
+            if not self.checker.issues:
+                rumps.alert(
+                    title="无需修复",
+                    message="当前网络状态良好，未发现需要修复的问题",
+                    ok="好的"
+                )
+                return
+            
+            # 先确认
+            response = rumps.alert(
+                title="一键修复",
+                message=f"检测到 {len(self.checker.issues)} 个问题，是否执行修复？\n\n修复内容包括：DNS 配置、系统代理、IPv6 等",
+                ok="修复",
+                cancel="取消"
+            )
+            
+            if response:  # 用户点击了修复
+                fixed = self.checker.fix_all()
+                
+                # 修复后异步重新检测
+                def _recheck():
+                    time.sleep(1)
+                    self.run_check()
+                threading.Thread(target=_recheck, daemon=True).start()
+                
+                fixed_text = "\n".join(f"✅ {f}" for f in fixed)
+                rumps.alert(
+                    title="修复完成",
+                    message=f"已执行以下修复：\n{fixed_text}\n\n正在自动重新检测...",
+                    ok="好的"
+                )
+        except Exception as e:
+            log(f"一键修复异常: {e}")
+            rumps.alert(title="修复失败", message=f"错误: {str(e)[:200]}", ok="好的")
+    
+    @rumps.clicked("📋 查看详细报告")
+    def on_show_report(self, _):
+        """显示详细报告"""
+        if not self.checker.last_check:
+            rumps.alert("暂无报告", "请先执行检测")
+            return
+        
+        lines = []
+        lines.append("=== 网络状态详细报告 ===")
+        lines.append(f"检测时间: {self.checker.last_check.strftime('%Y-%m-%d %H:%M:%S')}")
+        lines.append("")
+        
+        # 详细状态
+        lines.append("【网络接口】")
+        lines.append(f"  Wi-Fi: {self.checker.status.get('wifi_network', '未知')} ({self.checker.status.get('wifi_ip', '无')})")
+        lines.append(f"  VPN: {'已连接' if self.checker.status.get('vpn') == 'ok' else '未连接'} {self.checker.status.get('vpn_ip', '')}")
+        lines.append(f"  ClashX: {'运行中' if self.checker.status.get('clashx') == 'ok' else '未运行'}")
+        lines.append("")
+        
+        lines.append("【配置状态】")
+        lines.append(f"  DNS: {self.checker.status.get('dns_servers', '未知')}")
+        lines.append(f"  IPv6: {'已启用' if self.checker.status.get('ipv6') == 'on' else '已禁用'}")
+        lines.append(f"  系统代理: {'已开启' if self.checker.status.get('proxy') == 'on' else '已关闭'}")
+        lines.append("")
+        
+        lines.append("【连通性】")
+        lines.append(f"  百度: {'✅ 可达' if self.checker.status.get('baidu') == 'ok' else '❌ 不可达'}")
+        lines.append(f"  Google: {'✅ 可达' if self.checker.status.get('google') == 'ok' else '❌ 不可达'}")
+        lines.append(f"  OpenAI API: {'✅ 可达' if self.checker.status.get('openai') == 'ok' else '❌ 不可达'}")
+        lines.append("")
+        
+        if self.checker.issues:
+            lines.append("【发现的问题】")
+            for i, (severity, desc, fix) in enumerate(self.checker.issues, 1):
+                level = "🔴 严重" if severity == 'high' else "🟡 警告"
+                lines.append(f"  {i}. [{level}] {desc}")
+                lines.append(f"     建议: {fix}")
+        else:
+            lines.append("【问题】未发现明显问题，网络状态良好！")
+        
+        report_text = "\n".join(lines)
+        
+        # 用 alert 显示（长文本可能被截断，但够用）
+        rumps.alert(
+            title="网络状态详细报告",
+            message=report_text[:3000],  # 限制长度
+            ok="关闭"
+        )
+    
+    @rumps.clicked("⚙️ 关于")
+    def on_about(self, _):
+        """关于"""
+        rumps.alert(
+            title=f"{APP_NAME} v2.0",
+            message=(
+                "网络诊断与修复工具 - 菜单栏版本\n\n"
+                "功能:\n"
+                "• 实时监测网络状态（Wi-Fi/VPN/ClashX/DNS/代理）\n"
+                "• 自动检测连通性（国内/国外/AI 官方 API）\n"
+                "• 智能诊断问题（DNS 混合配置、代理残留、IPv6 泄漏等）\n"
+                "• 一键修复（DNS/代理/IPv6/缓存）\n"
+                f"• 后台每 {CHECK_INTERVAL} 秒自动刷新\n\n"
+                f"日志文件: {LOG_FILE}"
+            ),
+            ok="关闭"
+        )
+    
+    @rumps.clicked("🚪 退出")
+    def on_quit(self, _):
+        """退出应用"""
+        try:
+            response = rumps.alert(
+                title="退出网络助手",
+                message="确定要退出网络助手吗？\n\n注意：开机自启仍然启用，下次开机会自动启动。\n如需关闭开机自启，请在终端执行：\nlaunchctl unload ~/Library/LaunchAgents/com.wangxinlei.networkdoctor.plist",
+                ok="退出",
+                cancel="取消"
+            )
+            if response:
+                log("用户主动退出应用")
+                rumps.quit_application()
+        except Exception as e:
+            log(f"退出异常: {e}")
+            rumps.quit_application()
+
+# ==================== 主函数 ====================
+
+def main():
+    log("=" * 50)
+    log(f"{APP_NAME} v2.0 启动")
+    log(f"检测间隔: {CHECK_INTERVAL}秒")
+    log(f"日志文件: {LOG_FILE}")
+    
+    app = NetworkDoctorApp()
+    app.run()
+
+if __name__ == "__main__":
+    main()
