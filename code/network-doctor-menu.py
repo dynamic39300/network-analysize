@@ -49,7 +49,7 @@ else:
     CHECK_INTERVAL = 30
     LOG_FILE = os.path.expanduser("~/Library/Logs/Relay.log")
 
-MENUBAR_ICON = os.path.join(SCRIPT_DIR, "menubar_icon.png")
+MENUBAR_ICON = os.path.join(SCRIPT_DIR, "app_icon.png")
 
 # ==================== 工具函数 ====================
 
