@@ -8,6 +8,7 @@ Relay 检测引擎与修复引擎
 
 import subprocess
 import time
+import shlex
 from datetime import datetime
 from .checks import create_instances
 
@@ -134,6 +135,9 @@ class DetectionEngine:
 
 class FixEngine:
     """修复引擎：根据 issue_type 匹配修复规则并执行"""
+
+    DNS_TO_COMPANY_ISSUES = {'dns_mixed_on_vpn', 'dns_no_company_on_vpn'}
+    DNS_TO_PUBLIC_ISSUES = {'dns_company_leftover'}
     
     def __init__(self, config=None, detection_engine=None):
         self.config = config
@@ -142,13 +146,135 @@ class FixEngine:
     def _template_vars(self):
         """获取修复命令模板变量"""
         if self.config and hasattr(self.config, 'template_vars'):
-            return self.config.template_vars()
-        return {
+            values = self.config.template_vars()
+        else:
+            values = {
             'service': 'Wi-Fi',
             'interface': 'en0',
             'company_dns': '10.0.0.66 10.0.0.68',
             'public_dns': '223.5.5.5 114.114.114.114',
+            }
+
+        values = dict(values)
+        values['service'] = shlex.quote(values.get('service') or 'Wi-Fi')
+        values['interface'] = shlex.quote(values.get('interface') or 'en0')
+        return values
+
+    def describe_fixes(self, issues=None):
+        """返回将要执行的修复动作描述，用于 UI 确认。"""
+        actions = self._planned_actions(issues)
+        if not actions:
+            return ["没有可安全自动修复的问题"]
+        return [action['description'] for action in actions]
+
+    def _planned_actions(self, issues=None):
+        if issues is None and self.detection_engine:
+            issues = self.detection_engine.issues
+
+        if not issues:
+            return []
+
+        fix_rules = self.config.get('fix_rules', {}) if self.config else {}
+        template_vars = self._template_vars()
+        actions = []
+        seen_issue_types = set()
+
+        for issue in issues:
+            if len(issue) < 3:
+                continue
+            severity, issue_type, description = issue
+            if issue_type in seen_issue_types:
+                continue
+            seen_issue_types.add(issue_type)
+
+            rule = fix_rules.get(issue_type)
+            if not rule:
+                continue
+            cmd_template = rule.get('command', '')
+            if not cmd_template:
+                continue
+            if not self._is_safe_for_current_scene(issue_type):
+                continue
+
+            try:
+                cmd = cmd_template.format(**template_vars)
+            except KeyError as e:
+                print(f"修复命令模板变量缺失: {e}")
+                continue
+
+            actions.append({
+                'issue_type': issue_type,
+                'description': rule.get('description', issue_type),
+                'command': cmd,
+            })
+
+        return actions
+
+    def _is_safe_for_current_scene(self, issue_type):
+        """根据当前检测场景过滤高风险修复。"""
+        status = self.detection_engine.status if self.detection_engine else {}
+        vpn_state = status.get('vpn')
+
+        if issue_type in self.DNS_TO_COMPANY_ISSUES:
+            return vpn_state == 'ok'
+        if issue_type in self.DNS_TO_PUBLIC_ISSUES:
+            return vpn_state in ('off', 'warning', None)
+        return True
+
+    def _current_service(self):
+        if self.config:
+            service = self.config.get('wifi.service_name', 'Wi-Fi')
+        else:
+            service = 'Wi-Fi'
+        return shlex.quote(service or 'Wi-Fi')
+
+    def _take_snapshot(self):
+        """保存可回滚的网络配置快照。"""
+        service = self._current_service()
+        dns_output = run_cmd(f"networksetup -getdnsservers {service} 2>/dev/null")
+        dns_servers = [
+            line.strip()
+            for line in dns_output.splitlines()
+            if line.strip() and "There aren't any DNS Servers" not in line
+        ]
+
+        return {
+            'dns_servers': dns_servers,
+            'web_proxy_on': self._networksetup_proxy_enabled('getwebproxy'),
+            'secure_web_proxy_on': self._networksetup_proxy_enabled('getsecurewebproxy'),
+            'socks_proxy_on': self._networksetup_proxy_enabled('getsocksfirewallproxy'),
+            'ipv6_info': run_cmd(f"networksetup -getinfo {service} 2>/dev/null"),
         }
+
+    def _networksetup_proxy_enabled(self, getter):
+        service = self._current_service()
+        output = run_cmd(f"networksetup -{getter} {service} 2>/dev/null")
+        for line in output.splitlines():
+            if line.startswith('Enabled:'):
+                return 'Yes' in line
+        return False
+
+    def _rollback(self, snapshot):
+        """按快照回滚 DNS、代理开关和 IPv6 基本状态。"""
+        service = self._current_service()
+
+        dns_servers = snapshot.get('dns_servers') or []
+        if dns_servers:
+            run_cmd(f"networksetup -setdnsservers {service} {' '.join(dns_servers)}")
+        else:
+            run_cmd(f"networksetup -setdnsservers {service} Empty")
+
+        run_cmd(f"networksetup -setwebproxystate {service} {'on' if snapshot.get('web_proxy_on') else 'off'}")
+        run_cmd(f"networksetup -setsecurewebproxystate {service} {'on' if snapshot.get('secure_web_proxy_on') else 'off'}")
+        run_cmd(f"networksetup -setsocksfirewallproxystate {service} {'on' if snapshot.get('socks_proxy_on') else 'off'}")
+
+        if 'IPv6: Off' in snapshot.get('ipv6_info', ''):
+            run_cmd(f"networksetup -setv6off {service}")
+        else:
+            run_cmd(f"networksetup -setv6automatic {service}")
+
+        run_cmd("dscacheutil -flushcache")
+        run_cmd("killall -HUP mDNSResponder")
     
     def fix_all(self, issues=None):
         """
@@ -165,35 +291,18 @@ class FixEngine:
         
         if not issues:
             return ["没有需要修复的问题"]
-        
+
+        actions = self._planned_actions(issues)
+        if not actions:
+            return ["没有可安全自动修复的问题"]
+
         fixed = []
-        fix_rules = {}
-        if self.config:
-            fix_rules = self.config.get('fix_rules', {})
-        
-        template_vars = self._template_vars()
-        
-        for issue in issues:
-            if len(issue) < 3:
-                continue
-            severity, issue_type, description = issue
-            
-            rule = fix_rules.get(issue_type)
-            if not rule:
-                continue
-            
-            cmd_template = rule.get('command', '')
-            if not cmd_template:
-                continue
-            
-            try:
-                cmd = cmd_template.format(**template_vars)
-            except KeyError as e:
-                print(f"修复命令模板变量缺失: {e}")
-                continue
-            
-            run_cmd(cmd)
-            fixed.append(rule.get('description', issue_type))
+        snapshot = self._take_snapshot()
+        target_issue_types = {action['issue_type'] for action in actions}
+
+        for action in actions:
+            run_cmd(action['command'])
+            fixed.append(action['description'])
         
         # 始终清空 DNS 缓存
         run_cmd("dscacheutil -flushcache")
@@ -204,10 +313,18 @@ class FixEngine:
         if self.detection_engine:
             time.sleep(1)
             self.detection_engine.run_all()
-            remaining = len(self.detection_engine.issues)
-            if remaining == 0:
-                fixed.append("✅ 修复后所有问题已解决")
+            remaining_target_issues = {
+                issue[1]
+                for issue in self.detection_engine.issues
+                if len(issue) >= 2 and issue[1] in target_issue_types
+            }
+            if not remaining_target_issues:
+                fixed.append("✅ 修复后目标问题已解决")
             else:
-                fixed.append(f"⚠️ 修复后仍有 {remaining} 个问题")
+                self._rollback(snapshot)
+                if self.detection_engine:
+                    self.detection_engine.run_all()
+                remaining_text = ", ".join(sorted(remaining_target_issues))
+                fixed.append(f"⚠️ 修复后仍存在目标问题，已回滚: {remaining_text}")
         
         return fixed

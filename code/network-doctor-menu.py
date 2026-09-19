@@ -221,10 +221,23 @@ class NetworkDoctorApp(rumps.App):
                     ok="好的"
                 )
                 return
+
+            planned_fixes = self.fix_engine.describe_fixes(issues)
+            if planned_fixes == ["没有可安全自动修复的问题"]:
+                rumps.alert(
+                    title="无法自动修复",
+                    message="检测到的问题当前没有可安全执行的自动修复动作，请查看详细报告。",
+                    ok="好的"
+                )
+                return
             
             response = rumps.alert(
                 title="一键修复",
-                message=f"检测到 {len(issues)} 个问题，是否执行修复？\n\n修复内容包括：DNS 配置、系统代理、IPv6 等",
+                message=(
+                    f"检测到 {len(issues)} 个问题，是否执行以下修复？\n\n"
+                    + "\n".join(f"• {item}" for item in planned_fixes)
+                    + "\n\n修复前会保存当前配置；修复后自检失败会自动回滚。"
+                ),
                 ok="修复",
                 cancel="取消"
             )
