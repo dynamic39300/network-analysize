@@ -49,7 +49,7 @@ else:
     CHECK_INTERVAL = 30
     LOG_FILE = os.path.expanduser("~/Library/Logs/Relay.log")
 
-MENUBAR_ICON = os.path.join(SCRIPT_DIR, "app_icon.png")
+MENUBAR_ICON = os.path.join(SCRIPT_DIR, "assets", "menubar", "relay-menubar-template.png")
 
 # ==================== 工具函数 ====================
 
@@ -83,7 +83,7 @@ class NetworkDoctorApp(rumps.App):
     """Relay 菜单栏应用"""
     
     def __init__(self):
-        super().__init__(APP_NAME, icon=MENUBAR_ICON, title=None)
+        super().__init__(APP_NAME, icon=MENUBAR_ICON, template=True, title=None)
         
         # 初始化检测引擎和修复引擎
         self.detection_engine = DetectionEngine(config)
