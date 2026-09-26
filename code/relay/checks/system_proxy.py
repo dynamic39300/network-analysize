@@ -1,45 +1,66 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
-"""系统代理状态检测插件"""
-
-import subprocess
+"""Inspect actual configured endpoints, including legitimate remote proxies."""
+import ipaddress
 from .base import BaseCheck, register
-
-
-def run_cmd(cmd, timeout=10):
-    try:
-        result = subprocess.run(cmd, shell=True, capture_output=True, text=True, timeout=timeout)
-        return result.stdout.strip()
-    except Exception:
-        return ""
+from ..network import key_values
 
 
 @register
 class SystemProxyCheck(BaseCheck):
     name = "system_proxy"
     display_name = "系统代理"
-    description = "检测系统代理开关状态，检测代理残留"
-    default_enabled = True
-    
+    description = "检测实际代理端点，不依赖客户端白名单"
+
     def _load_enabled(self):
-        # 系统代理检测始终启用，不依赖配置开关
         return True
-    
+
     def check(self, status):
-        issues = []
-        
-        http_enable = run_cmd("scutil --proxy 2>/dev/null | grep 'HTTPEnable' | awk '{print $3}'")
-        https_enable = run_cmd("scutil --proxy 2>/dev/null | grep 'HTTPSEnable' | awk '{print $3}'")
-        
-        proxy_on = http_enable == '1' or https_enable == '1'
-        status['proxy'] = 'on' if proxy_on else 'off'
-        
-        if proxy_on and status.get('proxy_app') == 'off':
-            issues.append(('high', 'proxy_leftover', '代理残留：代理工具未运行但系统代理开启'))
-        
+        raw = self.command(["/usr/sbin/scutil", "--proxy"])
+        if "<dictionary>" not in raw:
+            raise ValueError("无法识别系统代理输出")
+        fields = key_values(raw)
+        endpoints, issues, failed_types = {}, [], []
+        for kind in ("HTTP", "HTTPS", "SOCKS"):
+            enabled = fields.get(kind + "Enable", "0")
+            if enabled not in ("0", "1"):
+                raise ValueError("无法识别代理启用状态")
+            if enabled != "1":
+                continue
+            host = fields.get(kind + "Proxy", "")
+            port = int(fields.get(kind + "Port", "0"))
+            if not host or not 1 <= port <= 65535:
+                raise ValueError("代理端点不完整")
+            result = self.runner(["/usr/bin/nc", "-G", "2", "-z", host, str(port)], timeout=3)
+            try:
+                local = ipaddress.ip_address(host).is_loopback
+            except ValueError:
+                local = host.casefold() == "localhost"
+            endpoints[kind.lower()] = {"host": host, "port": port, "local": local,
+                                       "state": "ok" if result.ok else "unknown"}
+            if not result.ok:
+                if result.returncode == 1 and not result.timed_out:
+                    endpoints[kind.lower()]["state"] = "unreachable"
+                    if local:
+                        failed_types.append(kind.lower())
+                    else:
+                        issues.append(("medium", "proxy_endpoint_unreachable", f"{kind} 远程代理端点不可达；保留现有代理配置"))
+                else:
+                    issues.append(("medium", "proxy_check_incomplete", f"{kind} 代理端点检查未完成"))
+        pac = fields.get("ProxyAutoConfigEnable", "0") == "1" or fields.get("ProxyAutoDiscoveryEnable", "0") == "1"
+        status["proxy_details"] = endpoints
+        status["proxy_pac"] = pac
+        status["proxy_failed_types"] = failed_types
+        status["proxy"] = "on" if endpoints or pac else "off"
+        status["system_proxy"] = "unknown" if any(e['state'] == 'unknown' for e in endpoints.values()) else "warning" if issues or failed_types else "ok"
+        if failed_types:
+            issues.append(("high", "proxy_leftover", "本机代理端点未监听：" + ", ".join(failed_types)))
         return issues
-    
+
     def get_status_lines(self, status):
-        icon = '🟢' if status.get('proxy') == 'off' else '🟡'
-        proxy_status = '已关闭' if status.get('proxy') == 'off' else '已开启'
-        return [f"{icon} 系统代理: {proxy_status}"]
+        if status.get("system_proxy") == "unknown":
+            return ["🟡 系统代理: 检查未完成"]
+        if status.get("proxy") == "off":
+            return ["⚪ 系统代理: 已关闭"]
+        if status.get("proxy_pac"):
+            return ["⚪ 系统代理: 自动配置（PAC/WPAD）"]
+        icon = "🟢" if status.get("system_proxy") == "ok" else "🟡"
+        return [f"{icon} 系统代理: 已开启"]

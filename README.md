@@ -1,92 +1,74 @@
-# 网络诊断与修复工具（网络助手）
+# Relay · Network 诊断
 
-> 项目代号：network-doctor ｜ 项目目录：`20260914-network诊断`
-> 归档日期：2026-09-14 ｜ 当前基线：菜单栏版 v2.0 / 终端版 v1.0
+macOS 菜单栏网络诊断工具。3.0 商业化本地候选版包含独立桌面应用、官网、邮箱账号、设备授权、试用、订单与支付适配。项目目录参照 `202609-typeleast` 的产品、架构、实施与验收职责划分；沿用 Relay 的银黑信号标识。
 
----
+**当前状态：可本地运行与验证，尚未公开发布或开通真实收款。** 当前机器正在运行的旧安装副本不会被构建脚本替换；商业账号、密钥和数据与参考项目独立。
 
-## 项目一句话
+## 本地预览
 
-一个面向 macOS 的**网络环境诊断与修复工具集**，围绕"公司 VPN + ClashX + 公共 DNS"三种上网场景，自动识别当前网络状态、定位问题（DNS 混配 / 代理残留 / IPv6 泄漏 / 连通性异常），并提供一键修复与开机自启守护。
+需要 `uv`（锁定 Python 3.12 依赖；桌面需要 Apple Silicon Mac）。从本项目根目录执行：
 
-## 为什么需要它
-
-公司网络环境存在三种互相切换的联网方式（直连国内 / 公司 VPN 智能翻墙 / ClashX 代理），配置项多且互相影响（DNS、IPv6、系统代理、VPN 接口），日常频繁出现：
-
-- 关闭 ClashX 后系统代理残留 → 全网打不开
-- VPN 连接后 DNS 未切换/混配 → 外网不稳定
-- IPv6 绕过代理 → AI 工具触发地域限制
-- DNS 被 fake-ip 模式篡改 → 无法解析
-
-每次都要手工敲命令排查修复，繁琐易错，于是做了这个工具集。
-
-## 组件清单（当前基线）
-
-| 组件 | 文件 | 版本 | 形态 | 说明 |
-|---|---|---|---|---|
-| 菜单栏版 | `code/network-doctor-menu.py` + `code/relay/` | v2.0 / Relay | rumps 菜单栏应用 | 常驻菜单栏，每 30 秒后台检测，Logo 常驻显示，一键检测/修复/报告 |
-| 终端版 | `code/network-doctor.sh` | v1.0 MVP | 交互式 CLI | 完整检测 + 可达性测试 + 问题诊断 + 一键修复 + 自检 |
-| DNS 守护 | `code/vpn-dns-sync.sh` | v1.0 | 后台守护进程 | 每 10 秒检测 VPN 状态，自动在"公司 DNS / 公共 DNS"间切换 |
-| 启动/停止 | `code/start-menu-app.sh`、`stop-menu-app.sh` | v1.x | 辅助脚本 | 管理菜单栏应用进程（launchd 防重复、SIGKILL 兜底） |
-| 一键检查 | `code/network-check.sh` | v1.0 | 终端脚本 | 8 项快速状态检查 |
-| 打包配置 | `code/setup.py` | - | py2app | 打包为 `.app` |
-
-## 目录结构
-
-```
-20260914-network诊断/
-├── README.md                    # 本文档：项目总览
-├── docs/
-│   ├── 01-项目背景.md            # 背景、场景模型、目标与约束
-│   ├── 02-开发过程.md            # 时间线、版本演进、关键决策与踩坑
-│   ├── 03-软件方案.md            # 架构、检测/修复逻辑、部署方案
-│   ├── 04-当前运行状态.md        # 运行快照、已知问题清单
-│   └── 05-2.0升级规划.md         # 系统性升级方案（本次任务核心）
-├── code/                        # 当前实现基线（与源项目指纹一致）
-│   ├── network-doctor-menu.py       # Relay 菜单栏入口
-│   ├── relay/                       # 插件化检测/修复引擎
-│   ├── relay_config.py              # 配置、预设、环境探测
-│   ├── menubar_icon.png / app_icon.png
-│   ├── network-doctor.sh
-│   ├── vpn-dns-sync.sh
-│   ├── start-menu-app.sh / stop-menu-app.sh
-│   ├── network-check.sh / test-muemod-vpn-route.sh
-│   ├── setup.py
-│   └── assets/                  # 应用图标（.icns / .png）
-├── deploy/
-│   └── com.wangxinlei.networkdoctor.plist   # launchd 自启配置
-└── archive/                     # 历史版本与日志（.bak/.bak2/旧日志）
+```sh
+./scripts/dev.sh web
+# 官网：http://127.0.0.1:8016/
 ```
 
-## 安装与运行（当前方式）
+开发验证码写入 `backend/.runtime/mail/`，不会发送真实邮件；可使用合成邮箱完成登录。真实支付及模拟付款默认均关闭。浏览器开启 14 天试用后，可在另一个终端启动源码桌面预览：
 
-```bash
-# 1. 创建虚拟环境并安装依赖（在安装目录执行）
-/usr/bin/python3 -m venv "$HOME/Library/Application Support/网络助手/.venv"
-"$HOME/Library/Application Support/网络助手/.venv/bin/pip" install rumps setproctitle
-
-# 2. 安装脚本副本（必须放在 ~/Library/Application Support 等非保护路径，
-#    因为 launchd 进程读不了 ~/Documents，见 docs/02）
-cp code/network-doctor-menu.py "$HOME/Library/Application Support/网络助手/"
-
-# 3. 加载 launchd 自启任务（gui 域 = 用户登录会话，图标可正常渲染）
-launchctl bootstrap "gui/$(id -u)" deploy/com.wangxinlei.networkdoctor.plist
+```sh
+./scripts/dev.sh desktop
 ```
 
-> 详细部署步骤与注意事项见 `docs/03-软件方案.md`。
+此命令为源码应用生成只含本地服务地址与公钥的配置，登录凭证仍保存到 macOS Keychain。会出现独立的 Relay 图标，请避免与旧版同时执行网络修复。源码预览的数据在 `~/Library/Application Support/Relay/`；新目录首次建立时只复制旧配置，不覆盖原文件。`Ctrl+C` 结束前台官网服务；菜单“退出”结束源码应用。
 
-## 本次任务目标
+## 产品与收费提案
 
-在归档当前基线与全部开发资料的基础上，**系统性升级到 2.0 正式版**，重点解决：
+| 能力 | Relay Free | Relay Pro |
+|---|---|---|
+| 基础检测、菜单栏监测、脱敏基础报告、确认后的安全修复 | 永久免费，离线可用 | 包含 |
+| 30 天本地历史、快照比较、HTML/JSON 诊断包 | — | 包含 |
+| 初始定价 | ¥0 | ¥12/月或 ¥98/年 |
+| 试用与设备 | 无需登录 | 每账号一次 14 天；本人多台 Mac |
 
-1. **状态图标可见性与可靠性**（历史多次出现"进程在跑但菜单栏无图标"）
-2. **修复动作的安全性**（自动切 DNS 曾导致依赖网络的进程集体失联）
-3. **可用性体验**（通知、历史记录、配置化、快速检测、场景自适应）
+首期采用主动购买续期，不自动扣款。到期恢复 Free。Pro 签名权益最多离线缓存 7 天；数据默认留在本机。官网的价格是可调整的首发提案，支付商户未就绪时购买按钮显示真实不可用状态。
 
-完整方案见 `docs/05-2.0升级规划.md`。
+## 项目结构
 
-## 当前源码真相（2026-09-19）
+```text
+apps/macos/                Python 依赖锁、PyInstaller 配置与打包说明
+backend/                   Django 官网、商业 API、运营后台、迁移和测试
+code/                      菜单栏入口与独立诊断核心；legacy shell 工具保留
+code/relay/commercial/      Keychain 账号、签名权益、本地历史和脱敏导出
+tests/                     桌面诊断、修复、账号和菜单并发回归
+scripts/                   本地启动、协议联测、PostgreSQL 验证、构建和签名
+deploy/commercial/         商业服务部署模板与发布/恢复说明
+docs/product/prds/        产品、用户和价格提案
+docs/architecture/specs/  协议与架构
+docs/design/              官网设计及交互验收
+docs/engineering/tickets/ 实施记录
+docs/quality/reports/     实测证据与发布差距
+docs/security/            数据与威胁模型
+archive/                   历史版本
+```
 
-当前实际运行版本已经升级为 **Relay 插件化架构**，源码已同步回 `code/`。后续开发以本项目目录为准；`~/Library/Application Support/网络助手/` 只作为 launchd 运行副本。
+旧 `code/setup.py`、launchd plist 和 shell 安装脚本属于历史链路；3.0 使用 `scripts/build-macos.sh`。编号文档保留历史信息，当前交付以本 README 和 [文档导航](docs/README.md) 为准。
 
-菜单栏显示已调整为只显示 Relay Logo，网络状态保留在下拉菜单中，不再在菜单栏标题区域显示绿色状态点或“正常/警告/异常”文字。
+## 构建与验证
+
+```sh
+./scripts/build-macos.sh --self-check
+# dist/macos/Relay.app 与 Relay-3.0.0-arm64-local.zip：本地 ad-hoc 签名，尚未公证
+
+uv run --directory apps/macos python -m unittest discover -s ../../tests -v
+uv run --directory backend python manage.py test commerce.tests
+uv run --directory backend --with pgserver python ../scripts/verify_postgres.py
+uv run --directory backend python ../scripts/verify_commercial_flow.py
+```
+
+默认打包支持 Free，不内置开发账号服务。配置正式服务的构建方式见 [桌面构建说明](apps/macos/README.md)。协议联测使用一次性的本地数据库、文件邮件和模拟付款，验证官网与真实桌面客户端的 PKCE、签名、试用、报价、幂等付款及退出链路，不产生真实交易。数据库并发测试在临时 PostgreSQL 上运行；系统网络写操作由测试桩代替。
+
+详细接口、管理员、商户和数据维护见 [后端说明](backend/README.md)；交付与尚未验证的上线条件见 [验收报告](docs/quality/reports/QA-001-commercialization.md)。
+
+## 正式上线所需输入
+
+需要确定域名、经营主体和客服邮箱，并提供独立生产 SMTP、PostgreSQL/TLS、支付商户与 Apple Developer ID/公证配置。生产模式缺少必要配置会拒绝启动。真实商户通知/退款、邮件送达、备份恢复、签名安装和第二台 Mac 兼容性必须完成预发布验证；目前不会把开发安装包标成正式下载。

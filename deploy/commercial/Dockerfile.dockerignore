@@ -1,0 +1,22 @@
+# Prevent local state/secrets from even entering a remote build context.
+**
+!backend/
+!backend/manage.py
+!backend/pyproject.toml
+!backend/uv.lock
+!backend/config/
+!backend/config/**
+!backend/commerce/
+!backend/commerce/**
+!backend/templates/
+!backend/templates/**
+!backend/static/
+!backend/static/**
+!deploy/
+!deploy/commercial/
+!deploy/commercial/entrypoint.sh
+**/__pycache__
+**/*.pyc
+**/.env
+**/.runtime
+**/*.sqlite3*

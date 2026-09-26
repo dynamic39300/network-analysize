@@ -13,3 +13,14 @@ build/
 
 # Local Relay configuration lives outside the repo by default.
 .config/
+.runtime/
+.env
+.env.*
+!.env.example
+staticfiles/
+.ruff_cache/
+.pytest_cache/
+*.sqlite3
+*.sqlite3-shm
+*.sqlite3-wal
+node_modules/

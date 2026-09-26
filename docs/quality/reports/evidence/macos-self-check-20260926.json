@@ -1,0 +1,17 @@
+{
+  "product": "Relay",
+  "version": "3.0.0",
+  "ok": true,
+  "plugins": [
+    "dns",
+    "ipv6",
+    "proxy",
+    "reachability",
+    "system_proxy",
+    "vpn",
+    "wifi"
+  ],
+  "menuIcon": "/private/var/folders/9z/n5_wmd7973gcsbklr1f5y8180000gn/T/relay-build.8Xa0cJ/Relay.app/Contents/Resources/assets/menubar/relay-menubar-template.png",
+  "optionalAccountModule": true,
+  "errors": {}
+}

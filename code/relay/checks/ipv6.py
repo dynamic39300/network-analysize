@@ -1,48 +1,32 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
-"""IPv6 状态检测插件"""
-
-import subprocess
+"""IPv6 is observed by default; only an explicit policy asks for a change."""
 from .base import BaseCheck, register
-
-
-def run_cmd(cmd, timeout=10):
-    try:
-        result = subprocess.run(cmd, shell=True, capture_output=True, text=True, timeout=timeout)
-        return result.stdout.strip()
-    except Exception:
-        return ""
+from ..network import key_values
 
 
 @register
 class Ipv6Check(BaseCheck):
     name = "ipv6"
     display_name = "IPv6"
-    description = "检测 IPv6 启用状态"
-    
+    description = "观察 IPv6 模式，不将启用本身视为故障"
+
     def check(self, status):
-        issues = []
-        should_be = self.cfg('should_be', 'off')
-        
-        if should_be == 'ignore':
-            status['ipv6'] = 'ignored'
-            return issues
-        
-        svc = self.wifi_service()
-        ipv6_status = run_cmd(f"networksetup -getinfo '{svc}' 2>/dev/null | grep -i 'IPv6' | awk -F': ' '{{print $2}}'")
-        
-        if should_be == 'off' and ipv6_status and ipv6_status != 'Off':
-            status['ipv6'] = 'on'
-            issues.append(('medium', 'ipv6_enabled', 'IPv6 已启用，可能导致网络异常'))
-        elif should_be == 'on' and (not ipv6_status or ipv6_status == 'Off'):
-            status['ipv6'] = 'off'
-            issues.append(('low', 'ipv6_disabled', 'IPv6 已禁用'))
-        else:
-            status['ipv6'] = should_be
-        
-        return issues
-    
-    def get_status_lines(self, status):
-        if status.get('ipv6') == 'ignored':
+        policy = self.cfg("should_be", "observe")
+        if policy == "ignore":
+            status["ipv6"] = "ignored"
             return []
-        return []  # IPv6 状态不在摘要中显示，仅在问题时提示
+        raw = self.command(["/usr/sbin/networksetup", "-getinfo", self.wifi_service()])
+        mode = key_values(raw).get("IPv6")
+        if mode not in ("Off", "Automatic", "Manual", "Link-local only", "Link-local"):
+            raise ValueError("无法识别 IPv6 模式")
+        status["ipv6_mode"] = mode
+        status["ipv6"] = "off" if mode == "Off" else "on"
+        if policy == "off" and mode != "Off":
+            return [("medium", "ipv6_enabled", "IPv6 已启用，与用户明确选择的关闭策略不一致")]
+        if policy == "on" and mode == "Off":
+            return [("low", "ipv6_disabled", "IPv6 已关闭，与用户选择的策略不一致")]
+        return []
+
+    def get_status_lines(self, status):
+        if status.get("ipv6") == "unknown":
+            return ["🟡 IPv6: 检查未完成"]
+        return []

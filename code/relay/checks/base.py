@@ -6,6 +6,7 @@ Relay 检测插件基类
 """
 
 from abc import ABC, abstractmethod
+from ..commands import checked, run_command
 
 # 插件注册表（模块级，供 register 装饰器使用）
 _REGISTRY = {}
@@ -33,9 +34,13 @@ class BaseCheck(ABC):
     description = ""       # 描述
     default_enabled = True # 默认是否启用
     
-    def __init__(self, config=None):
+    def __init__(self, config=None, runner=None):
         self.config = config
+        self.runner = runner or run_command
         self._enabled = self._load_enabled()
+
+    def command(self, argv, timeout=10):
+        return checked(self.runner, argv, timeout)
     
     def _load_enabled(self):
         """从配置加载启用状态"""

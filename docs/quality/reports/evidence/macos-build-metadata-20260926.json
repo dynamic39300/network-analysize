@@ -1,0 +1,41 @@
+{
+  "version": "3.0.0",
+  "bundleIdentifier": "com.wangxinlei.relay",
+  "architecture": "arm64",
+  "python": "3.12.14",
+  "pyinstaller": "6.22.3",
+  "signing": "ad-hoc, not Developer ID; not notarized",
+  "releaseConfigValidated": false,
+  "inputs": {
+    "apps/macos/uv.lock": "29e28b906dec31341a567a857f9de7c24121af4d18507da798e81f9a8cf80604",
+    "apps/macos/Relay.spec": "aff813e9e6299de1eb77facb32d10cf97c502cceec39fc66f598452a6f2a659c",
+    "scripts/build-macos.sh": "a44e04b7a5df5182c3946d30d823531d1dd671e85db70a243813441c95056b81",
+    "code/network-doctor-menu.py": "4c3e18c63a1cbf53f0c68dcb841bc3a089e39f086c2a6d96ad5b6c51b8d7a68c",
+    "code/relay_config.py": "76ad40d1535d1e26974e076dc6a75b5046db763a2b01d2db80e1e627f81982be",
+    "assets/logo/Relay-logo-final.png": "31c46af005ed741a2fb86a948853f10058c30a51cd44c5e94b0888677826f337",
+    "code/relay/__init__.py": "fa3609c433b29eee7a70e1a2519433127b5bc432f6c880d8a3885ab678eef7a2",
+    "code/relay/checks/__init__.py": "65cfa574a318b2eabf2a34abb90261c91f4ec513188713d74002dc068797ebb2",
+    "code/relay/checks/base.py": "23aa79137f0d2fb2ff6e6d9408703fdc13dae1ff42476596827b55c99a31e51d",
+    "code/relay/checks/dns.py": "9a055932ba80b506de851c7518f53304127db10b9fdad677388eed58c147462d",
+    "code/relay/checks/ipv6.py": "54fbd403b12efce7f3e033bdd9860b2dc5738a7ec6f038d9d354e9aca1e25a54",
+    "code/relay/checks/proxy.py": "21ff13e3ae947fde13580267ae5c6ff3ea42ae3ffc4469b1ee64d9e091bdceb2",
+    "code/relay/checks/reachability.py": "003ea68634526dda105bc8366ea01e8c3e076d62885690271b0ef726899b6ae0",
+    "code/relay/checks/system_proxy.py": "e88545031582815f9ae6e723a264a4decede30123c7f237eaf8666342e885649",
+    "code/relay/checks/vpn.py": "a60bb8c5caabb2d55f0ce4e810b3f4150b2e1f08f12ba944040978f9b483a7da",
+    "code/relay/checks/wifi.py": "4dba90c7e954ff32ec76f402c312c6a98ed2603d515e861032040cc05aa2cbf6",
+    "code/relay/commands.py": "690c2c4f721bac130df76b04db906700065ded21264aee591d4361370d76264a",
+    "code/relay/commercial/__init__.py": "c7dc09c61180401bdc82ec574e203dfcbdee537f6863e65f1b448875f0335524",
+    "code/relay/commercial/client.py": "db5637a918a69d6ff5a116fcae78c5994d1faadd9813e57c7e6f8e2947f04ec7",
+    "code/relay/commercial/history.py": "65e9ad1de6ecdb56b0fc4be43f9bf929e6298de10d5d066ebdc3e546d4c9b275",
+    "code/relay/commercial/license.py": "b6b12bbc7105438bbc498710276e84eb5ebc7839e1eff7c5fba1ee1fefd76a3e",
+    "code/relay/engine.py": "7bde63ca15aa5301173034775c92ef4f43d2c7abde26a9b9ef5805577185062f",
+    "code/relay/network.py": "02c91ba6de71e43ab3d129fdfb1e7e6503d137736bc451de02376908c5d02278"
+  },
+  "commercialConfigSHA256": null,
+  "archive": {
+    "filename": "Relay-3.0.0-arm64-local.zip",
+    "bytes": 18593691,
+    "sha256": "968928dd8c6b3c259cfc5e1ee170479e8a1b692b27b42adf693e81dd881f0c40",
+    "extractedStrictSignatureVerified": true
+  }
+}
