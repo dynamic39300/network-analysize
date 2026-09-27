@@ -16,7 +16,7 @@ ICON = Path(os.environ["RELAY_BUILD_ICON"])
 release = os.environ.get("RELAY_RELEASE_BUILD") == "1"
 config_file = os.environ.get("RELAY_BUILD_COMMERCIAL_CONFIG", "")
 
-datas = [(str(CODE / "assets" / "menubar"), "assets/menubar")]
+datas = [(str(CODE / "assets" / "menubar"), "assets/menubar"), (str(CODE / "app_icon.png"), ".")]
 # The registry discovers filenames, so include source paths as well as frozen imports.
 datas += [(str(path), "relay/checks") for path in sorted((CODE / "relay/checks").glob("*.py"))]
 if release and not config_file:
@@ -52,11 +52,13 @@ if config_file:
 hiddenimports = collect_submodules("relay.checks") + [
     "keyring.backends.macOS", "keyring.backends.fail", "keyring.errors",
     "PyObjCTools.AppHelper", "Foundation", "AppKit", "objc",
+    "SystemConfiguration", "CoreFoundation", "ServiceManagement",
     "cryptography.hazmat.primitives.asymmetric.ed25519",
 ]
 # Cocoa/rumps hooks collect imported extension modules; these include objc's own
 # native support libraries/data without depending on the build machine's venv.
 binaries = collect_dynamic_libs("objc")
+binaries.append((str(ROOT / 'build/macos-native/RelayIPC.dylib'), '.'))
 datas += collect_data_files("objc")
 
 a = Analysis(
@@ -67,16 +69,16 @@ a = Analysis(
 )
 pyz = PYZ(a.pure)
 exe = EXE(
-    pyz, a.scripts, [], exclude_binaries=True, name="Relay", debug=False,
+    pyz, a.scripts, [], exclude_binaries=True, name="NetCare", debug=False,
     bootloader_ignore_signals=False, strip=False, upx=False, console=False,
     argv_emulation=False, target_arch="arm64", codesign_identity=None,
     entitlements_file=None,
 )
-coll = COLLECT(exe, a.binaries, a.datas, strip=False, upx=False, name="Relay")
+coll = COLLECT(exe, a.binaries, a.datas, strip=False, upx=False, name="NetCare")
 app = BUNDLE(
-    coll, name="Relay.app", icon=str(ICON), bundle_identifier="com.wangxinlei.relay",
+    coll, name="NetCare.app", icon=str(ICON), bundle_identifier="com.wangxinlei.relay",
     version="3.0.0", info_plist={
-        "CFBundleName": "Relay", "CFBundleDisplayName": "Relay",
+        "CFBundleName": "NetCare", "CFBundleDisplayName": "NetCare",
         "CFBundleShortVersionString": "3.0.0", "CFBundleVersion": "3.0.0",
         "LSUIElement": True, "LSMinimumSystemVersion": "12.0",
         "NSHighResolutionCapable": True, "NSPrincipalClass": "NSApplication",

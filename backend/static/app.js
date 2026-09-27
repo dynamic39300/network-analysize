@@ -74,7 +74,7 @@
   };
   const label = (status) => statusNames[status] || "处理中";
   const planById = (id) => state.config?.plans?.find((plan) => plan.id === id);
-  const planName = (id) => planById(id)?.name || "Relay Pro";
+  const planName = (id) => planById(id)?.name || "NetCare Pro";
   const csrf = () =>
     document.cookie
       .split("; ")
@@ -239,9 +239,9 @@
 
   const title = (value) => {
     document.title =
-      value === "Relay"
-        ? "Relay · 看清连接的每一层"
-        : `${value} · Relay`;
+      value === "NetCare"
+        ? "NetCare · 看清连接的每一层"
+        : `${value} · NetCare`;
   };
 
   const examples = {
@@ -276,19 +276,19 @@
     show(exampleId);
     document.getElementById('copy-example').onclick = async () => {
       const item = examples[exampleId];
-      const report = `Relay 诊断报告示例（非当前网络检测）\n\n${item.title}\n${item.description}\n\n${item.evidence.map(row=>row.join('：')).join('\n')}\n\n${item.detail}`;
+      const report = `NetCare 诊断报告示例（非当前网络检测）\n\n${item.title}\n${item.description}\n\n${item.evidence.map(row=>row.join('：')).join('\n')}\n\n${item.detail}`;
       try { await navigator.clipboard.writeText(report); flash('示例报告已复制。'); }
       catch (_) { openDialog('复制示例报告', `<div class="field"><label for="example-copy">请选择并复制以下示例</label><textarea id="example-copy" readonly rows="10">${escape(report)}</textarea></div>`); document.getElementById('example-copy').select(); }
     };
   }
   function home() {
-    title("Relay");
-    main.innerHTML = `<div class="page-width"><section class="hero"><div class="hero-copy"><p class="eyebrow">为 Mac 上的每一次连接</p><h1>网络不通，<br>先看清问题在哪。</h1><p>从本地连接到目标服务，逐层检查。<br>让每一次修复，都有依据。</p><div class="button-row"><a class="btn btn-primary" href="/download/">获取 Mac 版 <span aria-hidden="true">↗</span></a><a class="btn btn-secondary" href="#report-example">查看诊断示例</a></div></div><figure class="hero-art"><img src="/static/relay-logo.png" width="360" height="360" alt="Relay 银色信号弧应用图标" fetchpriority="high"></figure></section><section class="foundation-strip" aria-label="产品原则"><div><strong>基础诊断永久免费</strong><p>无需账号，也能开始检查</p></div><div><strong>诊断数据留在本机</strong><p>分享之前，由你决定</p></div><div><strong>修复有确认、有回退</strong><p>先保存基线，再验证结果</p></div></section><section class="section" id="report-example"><h2>不只告诉你“连接失败”。</h2><p>分清连接、解析、代理与服务响应，把下一步说清楚。</p>${reportDemo()}</section><section class="principles"><div><h2>让排查更有条理，<br>让改动更有把握。</h2><p>网络问题常常不在同一层。Relay 保留每一项检查的依据，也明确告诉你哪些还不能确认。</p><a class="btn btn-quiet" href="/features/">了解全部功能 ↗</a></div><div><article class="principle-item"><h3>从现象找到值得检查的地方</h3><p>核对接口、路由、DNS 与代理，结合目标请求判断故障范围。</p></article><article class="principle-item"><h3>先看建议，再决定是否修复</h3><p>修复前重新检测并保存相关配置；失败时尝试恢复，明确展示结果。</p></article></div></section><section class="section-cta"><div><h2>今天查清楚，下次有对照。</h2><p>Pro 增加 30 天本地历史、快照对比与脱敏诊断包。基础检查一直免费。</p></div><a class="btn btn-secondary" href="/pricing/">查看 Free 与 Pro ↗</a></section></div>`;
+    title("NetCare");
+    main.innerHTML = `<div class="page-width"><section class="hero"><div class="hero-copy"><p class="eyebrow">为 Mac 上的每一次连接</p><h1>网络不通，<br>先看清问题在哪。</h1><p>从本地连接到目标服务，逐层检查。<br>让每一次修复，都有依据。</p><div class="button-row"><a class="btn btn-primary" href="/download/">获取 Mac 版 <span aria-hidden="true">↗</span></a><a class="btn btn-secondary" href="#report-example">查看诊断示例</a></div></div><figure class="hero-art"><img src="/static/relay-logo.png" width="360" height="360" alt="NetCare 银色信号弧应用图标" fetchpriority="high"></figure></section><section class="foundation-strip" aria-label="产品原则"><div><strong>基础诊断永久免费</strong><p>无需账号，也能开始检查</p></div><div><strong>诊断数据留在本机</strong><p>分享之前，由你决定</p></div><div><strong>修复有确认、有回退</strong><p>先保存基线，再验证结果</p></div></section><section class="section" id="report-example"><h2>不只告诉你“连接失败”。</h2><p>分清连接、解析、代理与服务响应，把下一步说清楚。</p>${reportDemo()}</section><section class="principles"><div><h2>让排查更有条理，<br>让改动更有把握。</h2><p>网络问题常常不在同一层。NetCare 保留每一项检查的依据，也明确告诉你哪些还不能确认。</p><a class="btn btn-quiet" href="/features/">了解全部功能 ↗</a></div><div><article class="principle-item"><h3>从现象找到值得检查的地方</h3><p>核对接口、路由、DNS 与代理，结合目标请求判断故障范围。</p></article><article class="principle-item"><h3>先看建议，再决定是否修复</h3><p>修复前重新检测并保存相关配置；失败时尝试恢复，明确展示结果。</p></article></div></section><section class="section-cta"><div><h2>今天查清楚，下次有对照。</h2><p>Pro 增加 30 天本地历史、快照对比与脱敏诊断包。基础检查一直免费。</p></div><a class="btn btn-secondary" href="/pricing/">查看 Free 与 Pro ↗</a></section></div>`;
     bindReport();
   }
   function features() {
     title('功能');
-    main.innerHTML = `<div class="page-width"><header class="page-heading"><h1>把连接拆开看，<br>把问题连起来理解。</h1><p>基础排查、修复与报告属于 Free。需要回看和对照时，再选择 Pro。</p></header><div class="feature-overview"><article class="feature-card"><p class="feature-index">Relay Free</p><h2>沿着真实的请求路径检查。</h2><p>区分本地接口、默认路由、DNS、VPN、代理与目标服务；没有足够证据时，保留“未确认”。</p><div class="feature-route" aria-label="检查范围"><span>本地连接</span><span>DNS</span><span>VPN / 代理</span><span>目标服务</span></div></article><article class="feature-card"><p class="feature-index">Relay Free</p><h2>修复前，先保留退路。</h2><p>只提供内建的修复动作。经过你的确认，再保存相关配置、执行并验证；失败和回滚失败都会明确显示。</p></article><article class="feature-card wide"><div><p class="feature-index">Relay Pro</p><h2>让这一次排查，<br>成为下一次的依据。</h2></div><p>保留 30 天本地历史，比较两次诊断快照，导出脱敏 HTML / JSON 诊断包。到期后仍保留已有记录，不影响免费检查。</p></article></div><section class="section"><h2>一份报告，同时有结论和边界。</h2><p>点击示例场景，查看不同证据下的建议。</p>${reportDemo()}</section><section class="feature-privacy"><h2>你的网络信息，默认留在你的 Mac。</h2><p>诊断不默认上传。Pro 导出会脱敏地址、SSID 与 URL 中的敏感信息；提交支持前仍可自行检查文件。账号服务只负责身份、权益与订单。</p><a href="/privacy/" class="btn btn-quiet">阅读隐私说明 ↗</a></section><section class="section-cta"><div><h2>从免费诊断开始。</h2><p>无需登录即可使用基础功能。Pro 试用由你主动开启。</p></div><a class="btn btn-primary" href="/download/">获取 Mac 版 ↗</a></section></div>`;
+    main.innerHTML = `<div class="page-width"><header class="page-heading"><h1>把连接拆开看，<br>把问题连起来理解。</h1><p>基础排查、修复与报告属于 Free。需要回看和对照时，再选择 Pro。</p></header><div class="feature-overview"><article class="feature-card"><p class="feature-index">NetCare Free</p><h2>沿着真实的请求路径检查。</h2><p>区分本地接口、默认路由、DNS、VPN、代理与目标服务；没有足够证据时，保留“未确认”。</p><div class="feature-route" aria-label="检查范围"><span>本地连接</span><span>DNS</span><span>VPN / 代理</span><span>目标服务</span></div></article><article class="feature-card"><p class="feature-index">NetCare Free</p><h2>修复前，先保留退路。</h2><p>只提供内建的修复动作。经过你的确认，再保存相关配置、执行并验证；失败和回滚失败都会明确显示。</p></article><article class="feature-card wide"><div><p class="feature-index">NetCare Pro</p><h2>让这一次排查，<br>成为下一次的依据。</h2></div><p>保留 30 天本地历史，比较两次诊断快照，导出脱敏 HTML / JSON 诊断包。到期后仍保留已有记录，不影响免费检查。</p></article></div><section class="section"><h2>一份报告，同时有结论和边界。</h2><p>点击示例场景，查看不同证据下的建议。</p>${reportDemo()}</section><section class="feature-privacy"><h2>你的网络信息，默认留在你的 Mac。</h2><p>诊断不默认上传。Pro 导出会脱敏地址、SSID 与 URL 中的敏感信息；提交支持前仍可自行检查文件。账号服务只负责身份、权益与订单。</p><a href="/privacy/" class="btn btn-quiet">阅读隐私说明 ↗</a></section><section class="section-cta"><div><h2>从免费诊断开始。</h2><p>无需登录即可使用基础功能。Pro 试用由你主动开启。</p></div><a class="btn btn-primary" href="/download/">获取 Mac 版 ↗</a></section></div>`;
     bindReport();
   }
 
@@ -305,7 +305,7 @@
     title("价格");
     const plans = state.config.plans.filter(plan => ['monthly','yearly'].includes(plan.id));
     if (!planById(state.planId)) state.planId = plans[0]?.id;
-    main.innerHTML = `<div class="page-width"><header class="page-heading"><h1>基础检查，始终免费。<br>多一份对照，选择 Pro。</h1><p>主动购买，主动续期。不自动扣款；提前续费保留剩余权益。</p></header><div class="plan-layout"><section class="free-plan"><p class="plan-name">Relay Free</p><h2>把当前问题查清楚。</h2><p class="plan-description">日常网络排查，无需账号。</p><div class="free-price">¥0<span>永久免费</span></div><ul class="benefits"><li>基础网络与服务检查</li><li>菜单栏网络监测</li><li>结果查看与基础报告</li><li>用户确认后的安全修复</li></ul><a class="btn btn-secondary full-width" href="/download/">获取 Mac 版</a></section><section class="pro-plan"><p class="plan-name">Relay Pro</p><h2>把排查经验留下来。</h2><p class="plan-description">在 Free 之上，增加本地历史与诊断协作。</p><ul class="benefits"><li>30 天本地诊断历史</li><li>诊断快照对比</li><li>脱敏 HTML / JSON 诊断包</li></ul><div class="plan-options" role="group" aria-label="选择 Pro 购买期限">${plans.map(plan => `<button type="button" class="plan-option ${plan.id===state.planId?'is-selected':''}" data-plan="${escape(plan.id)}" aria-pressed="${plan.id===state.planId}"><span class="plan-option-title">${plan.id==='yearly'?'年度':'月度'}</span><div class="plan-price">${money(plan.amount)}<span> / ${plan.months===1?'月':'年'}</span></div><p>${plan.months} 个日历月</p></button>`).join('')}</div><div id="checkout-content"></div></section></div><section class="pricing-trial"><div><h3>还没决定？先体验 14 天 Pro。</h3><p>每账号一次，由你主动开启。到期恢复 Free，不自动扣款。</p></div><a class="btn btn-secondary" href="${state.me?'/account/':loginURL('/account/')}">查看试用资格</a></section><section class="faq-section"><h2>购买前，先了解这些。</h2>${faq([
+    main.innerHTML = `<div class="page-width"><header class="page-heading"><h1>基础检查，始终免费。<br>多一份对照，选择 Pro。</h1><p>主动购买，主动续期。不自动扣款；提前续费保留剩余权益。</p></header><div class="plan-layout"><section class="free-plan"><p class="plan-name">NetCare Free</p><h2>把当前问题查清楚。</h2><p class="plan-description">日常网络排查，无需账号。</p><div class="free-price">¥0<span>永久免费</span></div><ul class="benefits"><li>基础网络与服务检查</li><li>菜单栏网络监测</li><li>结果查看与基础报告</li><li>用户确认后的安全修复</li></ul><a class="btn btn-secondary full-width" href="/download/">获取 Mac 版</a></section><section class="pro-plan"><p class="plan-name">NetCare Pro</p><h2>把排查经验留下来。</h2><p class="plan-description">在 Free 之上，增加本地历史与诊断协作。</p><ul class="benefits"><li>30 天本地诊断历史</li><li>诊断快照对比</li><li>脱敏 HTML / JSON 诊断包</li></ul><div class="plan-options" role="group" aria-label="选择 Pro 购买期限">${plans.map(plan => `<button type="button" class="plan-option ${plan.id===state.planId?'is-selected':''}" data-plan="${escape(plan.id)}" aria-pressed="${plan.id===state.planId}"><span class="plan-option-title">${plan.id==='yearly'?'年度':'月度'}</span><div class="plan-price">${money(plan.amount)}<span> / ${plan.months===1?'月':'年'}</span></div><p>${plan.months} 个日历月</p></button>`).join('')}</div><div id="checkout-content"></div></section></div><section class="pricing-trial"><div><h3>还没决定？先体验 14 天 Pro。</h3><p>每账号一次，由你主动开启。到期恢复 Free，不自动扣款。</p></div><a class="btn btn-secondary" href="${state.me?'/account/':loginURL('/account/')}">查看试用资格</a></section><section class="faq-section"><h2>购买前，先了解这些。</h2>${faq([
       ['需要账号才能诊断网络吗？','不需要。基础检测、菜单栏监测、结果和基础报告、安全修复永久免费。账号服务暂时不可用，也不会阻止本地 Free 检查。'],
       ['提前续期会损失剩余时间吗？','不会。购买的月度或年度期限接在现有连续权益之后；已到期则从成功开通重新起算。具体时间会在确认购买前显示。'],
       ['试用怎样开始？','登录后主动点击开始 14 天 Pro 试用，并确认后起算。注册和下载都不会自动开始。试用期内购买保留剩余时间；直接购买的账号不再追加一次免费试用。'],
@@ -565,7 +565,7 @@
       location.replace(nextURL());
       return;
     }
-    main.innerHTML = `<div class="page-width auth-layout"><div class="auth-description"><img class="auth-logo" src="/static/relay-logo.png" width="108" height="108" alt="Relay"><h1>一个账号，<br>连接你的每台 Mac。</h1><p>管理 Pro 权益、登录设备与订单。<br>基础网络诊断始终无需账号。</p></div><section class="auth-card"><h2>登录或创建账号</h2><p>首次验证邮箱后创建账号，不会自动开始试用。</p>${state.config.environment === "development" ? notice("本地演示默认将验证码保存在运行端的本机邮件目录；如部署者配置了邮件发送，请查收邮箱。网页不会返回验证码。") : ""}<form id="login-form"><div class="field"><label for="email">邮箱地址</label><input id="email" name="email" type="email" autocomplete="email" placeholder="you@example.com" required maxlength="254"></div><label class="consent"><input name="consent" type="checkbox" required><span>我已阅读并同意 <a class="text-link" href="/terms/" target="_blank" rel="noopener">服务条款</a> 与 <a class="text-link" href="/privacy/" target="_blank" rel="noopener">隐私说明</a>。</span></label><button type="submit" class="btn btn-primary full-width">获取验证码</button><div id="login-message"></div></form><div id="verify-step" hidden></div></section></div>`;
+    main.innerHTML = `<div class="page-width auth-layout"><div class="auth-description"><img class="auth-logo" src="/static/relay-logo.png" width="108" height="108" alt="NetCare"><h1>一个账号，<br>连接你的每台 Mac。</h1><p>管理 Pro 权益、登录设备与订单。<br>基础网络诊断始终无需账号。</p></div><section class="auth-card"><h2>登录或创建账号</h2><p>首次验证邮箱后创建账号，不会自动开始试用。</p>${state.config.environment === "development" ? notice("本地演示默认将验证码保存在运行端的本机邮件目录；如部署者配置了邮件发送，请查收邮箱。网页不会返回验证码。") : ""}<form id="login-form"><div class="field"><label for="email">邮箱地址</label><input id="email" name="email" type="email" autocomplete="email" placeholder="you@example.com" required maxlength="254"></div><label class="consent"><input name="consent" type="checkbox" required><span>我已阅读并同意 <a class="text-link" href="/terms/" target="_blank" rel="noopener">服务条款</a> 与 <a class="text-link" href="/privacy/" target="_blank" rel="noopener">隐私说明</a>。</span></label><button type="submit" class="btn btn-primary full-width">获取验证码</button><div id="login-message"></div></form><div id="verify-step" hidden></div></section></div>`;
     const form = document.getElementById("login-form");
     form.onsubmit = (event) => {
       event.preventDefault();
@@ -712,7 +712,7 @@
     const entitlement = state.me.entitlement;
     const eligible = entitlement.status === "eligible";
     const pro = entitlement.tier === "pro" || ['trial','paid'].includes(entitlement.status);
-    main.innerHTML = accountShell(`<header class="workspace-heading"><div><h1>我的 Relay</h1><p class="account-email">${escape(state.me.account.email)}</p></div><button id="refresh-account" class="btn btn-secondary btn-small">同步权益</button></header><section class="license-panel"><div><div class="status-label">${pro?'Relay Pro':'Relay Free'} / ${label(entitlement.status)}</div><h2>${eligible?'从 Free 开始，按需体验 Pro。':pro?'为下一次诊断，保留更多线索。':'基础检查，一直都在。'}</h2><p class="license-expiry">${pro?`Pro 有效至 ${date(entitlement.validUntil)}（北京时间）`:eligible?'14 天 Pro 试用，由你主动开启。':'Pro 已到期，基础诊断与已有记录仍保留。'}</p>${entitlement.status==='trial'&&entitlement.paidUntil?`<p class="small">试用结束 ${date(entitlement.trialEndsAt)} 后接续已购期限。</p>`:''}</div><div class="button-row">${eligible?'<button id="start-trial" class="btn btn-primary" type="button">开始 14 天 Pro 试用</button>':''}<a class="btn ${eligible?'btn-secondary':'btn-primary'}" href="/pricing/">${pro?'续期 Pro':'查看 Pro 方案'}</a></div></section><div class="account-note"><p>不自动扣款，同一账号供本人多台 Mac 使用。Pro 到期不删除已有记录。已验证权益最多离线使用 7 天，且不超过实际到期时间。</p></div><div class="section-title"><h2>已登录的电脑</h2><p>管理设备访问，不设置台数额度</p></div><div id="sessions" aria-live="polite"><div class="skeleton-line"></div><div class="skeleton-line"></div><span class="sr-only">正在加载登录会话</span></div>`);
+    main.innerHTML = accountShell(`<header class="workspace-heading"><div><h1>我的 NetCare</h1><p class="account-email">${escape(state.me.account.email)}</p></div><button id="refresh-account" class="btn btn-secondary btn-small">同步权益</button></header><section class="license-panel"><div><div class="status-label">${pro?'NetCare Pro':'NetCare Free'} / ${label(entitlement.status)}</div><h2>${eligible?'从 Free 开始，按需体验 Pro。':pro?'为下一次诊断，保留更多线索。':'基础检查，一直都在。'}</h2><p class="license-expiry">${pro?`Pro 有效至 ${date(entitlement.validUntil)}（北京时间）`:eligible?'14 天 Pro 试用，由你主动开启。':'Pro 已到期，基础诊断与已有记录仍保留。'}</p>${entitlement.status==='trial'&&entitlement.paidUntil?`<p class="small">试用结束 ${date(entitlement.trialEndsAt)} 后接续已购期限。</p>`:''}</div><div class="button-row">${eligible?'<button id="start-trial" class="btn btn-primary" type="button">开始 14 天 Pro 试用</button>':''}<a class="btn ${eligible?'btn-secondary':'btn-primary'}" href="/pricing/">${pro?'续期 Pro':'查看 Pro 方案'}</a></div></section><div class="account-note"><p>不自动扣款，同一账号供本人多台 Mac 使用。Pro 到期不删除已有记录。已验证权益最多离线使用 7 天，且不超过实际到期时间。</p></div><div class="section-title"><h2>已登录的电脑</h2><p>管理设备访问，不设置台数额度</p></div><div id="sessions" aria-live="polite"><div class="skeleton-line"></div><div class="skeleton-line"></div><span class="sr-only">正在加载登录会话</span></div>`);
     bindLogout();
     document.getElementById('refresh-account').onclick = event => busy(event.currentTarget, async () => {
       try { state.me = await api('/me'); await account(); flash('已同步最新权益。'); } catch(error) { flash(error.message,true); }
@@ -836,10 +836,10 @@
 
   function supportGuides() {
     return faq([
-      ['Relay 能修复所有网络问题吗？','不能。Relay 帮助区分本地连接、DNS、VPN、代理与目标服务问题。没有足够证据时会保留未确认，不会把猜测写成结论。'],
+      ['NetCare 能修复所有网络问题吗？','不能。NetCare 帮助区分本地连接、DNS、VPN、代理与目标服务问题。没有足够证据时会保留未确认，不会把猜测写成结论。'],
       ['检测显示未完成，需要立即修改设置吗？','先查看具体失败的检查。检测命令异常、超时或缺少证据，都可能产生未完成状态；这不等于网络健康，也不等于应该立即修改配置。'],
       ['付款后，Pro 还没有开通','确认网页和客户端使用同一个邮箱，在订单中刷新付款状态，再同步权益。不要重复付款；仍有问题时关联订单提交反馈。'],
-      ['浏览器确认了，客户端还在等待','保持 Relay 客户端打开。授权请求只有 5 分钟有效；如果客户端停止等待，请从客户端重新发起，并使用新链接确认。'],
+      ['浏览器确认了，客户端还在等待','保持 NetCare 客户端打开。授权请求只有 5 分钟有效；如果客户端停止等待，请从客户端重新发起，并使用新链接确认。'],
       ['怎样分享诊断报告？','基础报告可供个人排查，Pro 可导出脱敏 HTML / JSON 诊断包。分享前检查内容，删除密码、令牌、企业地址或不适合公开的网络信息。']
     ]);
   }
@@ -898,7 +898,7 @@
     try {
       const result = await api("/support");
       container.innerHTML = result.tickets.length
-        ? `<div class="ticket-list">${result.tickets.map((ticket) => `<article class="ticket-card"><details><summary>${escape(ticket.subject)}</summary><div class="ticket-meta">${label(ticket.status)} · ${date(ticket.createdAt)}（北京时间）<br>编号：<span class="mono">${escape(ticket.id)}</span></div><div class="ticket-messages">${ticket.messages.map((message) => `<div class="ticket-message ${message.fromSupport ? "from-support" : ""}"><div class="message-meta">${message.fromSupport ? "Relay 支持" : "我"} · ${date(message.createdAt)}</div>${escape(message.body)}</div>`).join("")}</div><form class="ticket-reply" data-ticket="${escape(ticket.id)}"><div class="field"><label for="reply-${escape(ticket.id)}">补充信息</label><textarea id="reply-${escape(ticket.id)}" name="body" required minlength="2" maxlength="5000" placeholder="在这里继续补充问题信息"></textarea></div><button class="btn btn-secondary btn-small" type="submit">发送补充</button><div class="reply-message"></div></form></details></article>`).join("")}</div>`
+        ? `<div class="ticket-list">${result.tickets.map((ticket) => `<article class="ticket-card"><details><summary>${escape(ticket.subject)}</summary><div class="ticket-meta">${label(ticket.status)} · ${date(ticket.createdAt)}（北京时间）<br>编号：<span class="mono">${escape(ticket.id)}</span></div><div class="ticket-messages">${ticket.messages.map((message) => `<div class="ticket-message ${message.fromSupport ? "from-support" : ""}"><div class="message-meta">${message.fromSupport ? "NetCare 支持" : "我"} · ${date(message.createdAt)}</div>${escape(message.body)}</div>`).join("")}</div><form class="ticket-reply" data-ticket="${escape(ticket.id)}"><div class="field"><label for="reply-${escape(ticket.id)}">补充信息</label><textarea id="reply-${escape(ticket.id)}" name="body" required minlength="2" maxlength="5000" placeholder="在这里继续补充问题信息"></textarea></div><button class="btn btn-secondary btn-small" type="submit">发送补充</button><div class="reply-message"></div></form></details></article>`).join("")}</div>`
         : '<div class="empty-state"><h3>目前还没有反馈记录</h3><p>提交的问题会显示在这里，回复与进度都会保留。</p></div>';
       container.querySelectorAll("[data-ticket]").forEach(
         (form) =>
@@ -935,7 +935,7 @@
     title('下载与更新');
     const data=state.config.download;
     const url=data.available?safeURL(data.url):null;
-    main.innerHTML=`<div class="page-width"><header class="page-heading"><h1>让连接的问题，<br>在 Mac 上看清楚。</h1><p>基础诊断无需登录。需要历史、对比与诊断包时，再开启 Pro。</p></header><div class="download-layout"><section class="download-lead"><img src="/static/relay-logo.png" width="88" height="88" alt="Relay 应用图标"><h2>Relay for Mac</h2><p>检查网络，理解原因，确认后修复。</p>${url?`<a class="btn btn-primary" href="${escape(url)}">下载 Mac 版 ${escape(data.version||'')} ↓</a>`:'<button class="btn btn-primary" type="button" disabled>正式安装包准备中</button><div class="notice">正式下载尚未开放。签名、公证与安装验证完成后，这里才会提供经过验证的安装包。</div>'}<div class="system-spec"><span>${url?'系统要求':'目标系统'}：macOS ${escape(data.minimumOS||'12.0')} 及以上</span><span>${escape(data.architecture||'arm64')} / Apple Silicon</span></div><p class="small">${url?'请按上方系统与芯片要求选择安装包。':'当前为开发目标，不代表所有系统版本已验收。'}Intel 与 Windows 正式版本尚未提供。</p></section><section><ol class="install-steps"><li><h3>从正式入口获取安装包</h3><p>下载开放后，从本页获取。签名未验证或来源不明的安装包，不应通过关闭系统保护来安装。</p></li><li><h3>打开 Relay，运行基础检查</h3><p>先查看检测结论与原始依据。检查未完成时会明确显示，不把未知当作健康。</p></li><li><h3>核对建议，再确认修复</h3><p>修复会改变相关网络设置，请先核对作用范围。Relay 保存相关配置，并在执行后重新验证。</p></li><li><h3>需要对照时，再启用 Pro</h3><p>登录账号后主动开启 14 天试用。浏览器确认设备，客户端自动完成登录；不需要手工复制凭证。</p></li></ol></section></div><section class="faq-section"><h2>安装与更新</h2>${faq([
+    main.innerHTML=`<div class="page-width"><header class="page-heading"><h1>让连接的问题，<br>在 Mac 上看清楚。</h1><p>基础诊断无需登录。需要历史、对比与诊断包时，再开启 Pro。</p></header><div class="download-layout"><section class="download-lead"><img src="/static/relay-logo.png" width="88" height="88" alt="NetCare 应用图标"><h2>NetCare for Mac</h2><p>检查网络，理解原因，确认后修复。</p>${url?`<a class="btn btn-primary" href="${escape(url)}">下载 Mac 版 ${escape(data.version||'')} ↓</a>`:'<button class="btn btn-primary" type="button" disabled>正式安装包准备中</button><div class="notice">正式下载尚未开放。签名、公证与安装验证完成后，这里才会提供经过验证的安装包。</div>'}<div class="system-spec"><span>${url?'系统要求':'目标系统'}：macOS ${escape(data.minimumOS||'12.0')} 及以上</span><span>${escape(data.architecture||'arm64')} / Apple Silicon</span></div><p class="small">${url?'请按上方系统与芯片要求选择安装包。':'当前为开发目标，不代表所有系统版本已验收。'}Intel 与 Windows 正式版本尚未提供。</p></section><section><ol class="install-steps"><li><h3>从正式入口获取安装包</h3><p>下载开放后，从本页获取。签名未验证或来源不明的安装包，不应通过关闭系统保护来安装。</p></li><li><h3>打开 NetCare，运行基础检查</h3><p>先查看检测结论与原始依据。检查未完成时会明确显示，不把未知当作健康。</p></li><li><h3>核对建议，再确认修复</h3><p>修复会改变相关网络设置，请先核对作用范围。NetCare 保存相关配置，并在执行后重新验证。</p></li><li><h3>需要对照时，再启用 Pro</h3><p>登录账号后主动开启 14 天试用。浏览器确认设备，客户端自动完成登录；不需要手工复制凭证。</p></li></ol></section></div><section class="faq-section"><h2>安装与更新</h2>${faq([
       ['系统提示无法验证开发者，怎么办？','先确认来自本页正式下载入口并检查下载是否完整。仍被阻止时请联系支持，不要关闭系统安全保护。'],
       ['更新会删除我的记录吗？','正常更新应保留本地设置和记录。更新前退出旧版本，并保留重要诊断报告；若遇到异常，请记录版本与复现步骤。'],
       ['电脑不联网，还能使用吗？','Free 的本地检查不依赖账号连接。网络不可达的检查会如实显示失败或未完成，已有有效 Pro 授权最多离线验证 7 天。']
@@ -951,19 +951,19 @@
   async function authorize() {
     title('确认电脑登录');
     const request = new URLSearchParams(location.search).get('request');
-    if (!request) { main.innerHTML=`<div class="page-width authorization"><h1>登录链接不完整。</h1><p>请回到 Relay Mac 客户端，重新发起登录。</p><a class="btn btn-secondary" href="/account/">返回账号中心</a></div>`; return; }
+    if (!request) { main.innerHTML=`<div class="page-width authorization"><h1>登录链接不完整。</h1><p>请回到 NetCare Mac 客户端，重新发起登录。</p><a class="btn btn-secondary" href="/account/">返回账号中心</a></div>`; return; }
     try {
       const result=await api(`/desktop/request?request=${encodeURIComponent(request)}`);
-      main.innerHTML=`<div class="page-width authorization"><img class="auth-logo" src="/static/relay-logo.png" width="108" height="108" alt="Relay"><h1>确认在这台 Mac 登录。</h1><p>只批准你刚刚在 Relay 客户端发起的请求。</p><section class="auth-card"><dl><div><dt>账号</dt><dd>${escape(state.me.account.email)}</dd></div><div><dt>电脑名称</dt><dd>${escape(result.deviceName)}</dd></div><div><dt>请求有效至（北京时间）</dt><dd>${date(result.expiresAt)}</dd></div></dl><button class="btn btn-primary full-width" id="approve-desktop" type="button">确认登录到这台电脑</button><a class="btn btn-quiet full-width" href="/account/">暂不确认，返回账号</a><div id="authorize-message"></div></section><p class="small">确认后返回正在等待的 Relay 客户端，无需复制任何登录凭证。</p></div>`;
+      main.innerHTML=`<div class="page-width authorization"><img class="auth-logo" src="/static/relay-logo.png" width="108" height="108" alt="NetCare"><h1>确认在这台 Mac 登录。</h1><p>只批准你刚刚在 NetCare 客户端发起的请求。</p><section class="auth-card"><dl><div><dt>账号</dt><dd>${escape(state.me.account.email)}</dd></div><div><dt>电脑名称</dt><dd>${escape(result.deviceName)}</dd></div><div><dt>请求有效至（北京时间）</dt><dd>${date(result.expiresAt)}</dd></div></dl><button class="btn btn-primary full-width" id="approve-desktop" type="button">确认登录到这台电脑</button><a class="btn btn-quiet full-width" href="/account/">暂不确认，返回账号</a><div id="authorize-message"></div></section><p class="small">确认后返回正在等待的 NetCare 客户端，无需复制任何登录凭证。</p></div>`;
       document.getElementById('approve-desktop').onclick=event=>busy(event.currentTarget,async()=>{
         try {
           const result=await api('/desktop/approve',{method:'POST',data:{request}});
           if(result.approved!==true) throw new Error('暂时无法确认授权结果，请回 App 重新发起。');
-          document.querySelector('.authorization .auth-card').innerHTML=`${notice('登录已确认。请返回 Relay 客户端，它会自动完成连接。','success')}<a href="/account/" class="btn btn-secondary full-width">查看账号与设备</a><p class="small">如果客户端已停止等待，请在客户端重新发起登录。本页面可以关闭。</p>`;
+          document.querySelector('.authorization .auth-card').innerHTML=`${notice('登录已确认。请返回 NetCare 客户端，它会自动完成连接。','success')}<a href="/account/" class="btn btn-secondary full-width">查看账号与设备</a><p class="small">如果客户端已停止等待，请在客户端重新发起登录。本页面可以关闭。</p>`;
         }catch(error){setMessage(document.getElementById('authorize-message'),error.message);}
       });
     } catch(error) {
-      main.innerHTML=`<div class="page-width authorization"><h1>暂时无法完成登录。</h1>${notice(error.message,'error')}<p>请回到 Relay 客户端重新发起，再使用新的链接确认。</p><a class="btn btn-secondary" href="/account/">返回账号中心</a></div>`;
+      main.innerHTML=`<div class="page-width authorization"><h1>暂时无法完成登录。</h1>${notice(error.message,'error')}<p>请回到 NetCare 客户端重新发起，再使用新的链接确认。</p><a class="btn btn-secondary" href="/account/">返回账号中心</a></div>`;
     }
   }
 
@@ -972,14 +972,14 @@
     title(privacy?'隐私说明':'服务条款');
     const draft=state.config.environment!=='production'?notice('这是本地开发预览中的条款审阅稿。经营主体、服务联系信息与正式销售政策需要在公开发布前完成确认。'):'';
     main.innerHTML=`<article class="page-width legal-page"><h1>${privacy?'隐私说明':'服务条款'}</h1><p class="small">版本：${escape((privacy?state.config.privacyVersion:state.config.termsVersion)||'待公布')}</p>${draft}${privacy?`
-      <p class="legal-intro">Relay 用于诊断 Mac 的网络连接。诊断数据默认保存在本机；账号服务处理登录、权益、订单及你主动提交的支持记录。</p>
+      <p class="legal-intro">NetCare 用于诊断 Mac 的网络连接。诊断数据默认保存在本机；账号服务处理登录、权益、订单及你主动提交的支持记录。</p>
       <h2>网络诊断与本地记录</h2><p>运行检查时，客户端会读取相关网络接口、路由、DNS、代理与连接结果，按检查目标发起网络请求。目标服务因此可能接收到连接来源及该请求。我们不默认把本地诊断结果上传至账号服务。</p><p>Pro 在本机保留最多 30 天的诊断历史，支持快照对比与脱敏 HTML / JSON 导出。导出会处理地址、网络名称和 URL 中的敏感信息；文件仍可能包含你主动保留的技术信息，分享前请自行检查。到期不立即删除已有记录，既有本地保留规则继续适用。</p>
       <h2>账号与设备</h2><p>邮箱用于验证码登录与必要的服务沟通。服务器保存账号、试用和付费期限、电脑名称、会话创建与最近连接时间，用于同步权益和撤销设备会话。客户端登录凭证保存在 macOS Keychain，不通过网页展示或复制。</p><p>网站使用维持登录与防止跨站请求所需的 Cookie；浏览器本地存储只保存外观偏好。当前官网不加载广告追踪、第三方分析或远程字体。</p>
-      <h2>订单、支付与支持</h2><p>服务保存订单、套餐、金额、渠道、付款与退款状态，以完成交易并处理争议。微信或支付宝按各自规则处理支付信息，我们不要求你在 Relay 页面输入银行卡密码。</p><p>支持工单只包含你主动提交的标题、正文和关联订单。请勿粘贴密码、验证码、访问令牌、完整内部域名或未经允许分享的企业网络信息。开发模式下模拟付款不产生真实扣款。</p>
+      <h2>订单、支付与支持</h2><p>服务保存订单、套餐、金额、渠道、付款与退款状态，以完成交易并处理争议。微信或支付宝按各自规则处理支付信息，我们不要求你在 NetCare 页面输入银行卡密码。</p><p>支持工单只包含你主动提交的标题、正文和关联订单。请勿粘贴密码、验证码、访问令牌、完整内部域名或未经允许分享的企业网络信息。开发模式下模拟付款不产生真实扣款。</p>
       <h2>访问、保存与删除</h2><p>你可以在账号中心查阅权益、订单与登录设备，撤销不再使用的电脑。账号更正、导出或删除请求可通过支持入口提出。为履行交易、处理争议或满足适用义务而需要保留的记录，其处理范围会在回应请求时说明。正式数据保留期限及服务提供方信息需要在公开上线前补全。</p>
       <h2>联系与运营信息</h2><p>${state.config.legalEntityName?`服务经营者：${escape(state.config.legalEntityName)}。`:'正式经营主体尚未公示，本地预览不构成正式运营服务。'}隐私问题请通过 <a href="/support/">支持页面</a> 提出。不要向任何人提供邮箱验证码或登录凭据。</p>
     `:`
-      <p class="legal-intro">Relay 帮助你理解连接故障并评估修复建议。它不能保证解决所有网络问题，也不能代替网络管理员的安全与访问政策。</p>
+      <p class="legal-intro">NetCare 帮助你理解连接故障并评估修复建议。它不能保证解决所有网络问题，也不能代替网络管理员的安全与访问政策。</p>
       <h2>Free 与 Pro</h2><p>Free 包含基础检测、菜单栏监测、结果查看、基础报告和经过用户确认的安全修复，永久免费且不依赖账号联网。Pro 增加 30 天本地历史、快照对比与脱敏诊断包。系统和芯片范围以 <a href="/download/">下载页面</a> 的实际发布信息为准。</p>
       <h2>修复与判断边界</h2><p>请在了解作用范围后确认修复。修复前保存相关配置并执行后验证，失败时尝试回滚；回滚也可能失败，此时会明确报告。目标服务可达不等于其业务正常，第三方服务公告也不能单独证明你的本机链路正常。</p>
       <h2>14 天 Pro 试用</h2><p>每个账号一次，只有在用户主动开始并成功开通后才计时。注册、下载或设备登录不自动开始试用。无需绑定付款方式，到期恢复 Free，不自动扣款。换电脑或重装不重置试用；直接购买付费期限后不再追加一次免费试用。</p>

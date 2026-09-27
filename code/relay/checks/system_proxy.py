@@ -48,6 +48,10 @@ class SystemProxyCheck(BaseCheck):
         pac = fields.get("ProxyAutoConfigEnable", "0") == "1" or fields.get("ProxyAutoDiscoveryEnable", "0") == "1"
         status["proxy_details"] = endpoints
         status["proxy_pac"] = pac
+        status['proxy_constraints'] = {
+            'exceptions': 'ExceptionsList' in raw or fields.get('ExcludeSimpleHostnames') == '1',
+            'scoped': any(key in raw for key in ('__SCOPED__', '__SUPPLEMENTAL__', 'SupplementalMatchDomains')),
+        }
         status["proxy_failed_types"] = failed_types
         status["proxy"] = "on" if endpoints or pac else "off"
         status["system_proxy"] = "unknown" if any(e['state'] == 'unknown' for e in endpoints.values()) else "warning" if issues or failed_types else "ok"

@@ -71,7 +71,7 @@ def send_code(email, ip):
     )
     try:
         sent = send_mail(
-            "Relay 登录验证码",
+            "NetCare 登录验证码",
             f"你的登录验证码是 {code}，10 分钟内有效。请勿将验证码交给任何人。若非本人操作，请忽略本邮件。",
             settings.DEFAULT_FROM_EMAIL,
             [email],

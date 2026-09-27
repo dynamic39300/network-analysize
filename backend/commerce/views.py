@@ -131,7 +131,7 @@ def latest_release():
 def config(request):
     release = latest_release()
     return {
-        "productName": "Relay",
+        "productName": "NetCare",
         "termsVersion": settings.TERMS_VERSION,
         "privacyVersion": settings.PRIVACY_VERSION,
         "environment": settings.ENVIRONMENT,

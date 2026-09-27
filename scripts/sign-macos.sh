@@ -13,7 +13,7 @@ while (($#)); do
     --archive) [[ $# -ge 2 ]] || exit 2; ARCHIVE="$2"; shift 2 ;;
     --keychain-profile) [[ $# -ge 2 ]] || exit 2; PROFILE="$2"; shift 2 ;;
     --notarize) NOTARIZE=1; shift ;;
-    --help) echo 'Usage: sign-macos.sh --app /absolute/Relay.app --identity "Developer ID Application: …" [--archive /absolute/new.zip] [--notarize --keychain-profile EXISTING_PROFILE]'; exit 0 ;;
+    --help) echo 'Usage: sign-macos.sh --app /absolute/NetCare.app --identity "Developer ID Application: …" [--archive /absolute/new.zip] [--notarize --keychain-profile EXISTING_PROFILE]'; exit 0 ;;
     *) echo "Unknown option: $1" >&2; exit 2 ;;
   esac
 done
@@ -28,7 +28,7 @@ from urllib.parse import urlsplit
 app = pathlib.Path(sys.argv[1])
 info = plistlib.loads((app/'Contents/Info.plist').read_bytes())
 if info.get('CFBundleIdentifier') != 'com.wangxinlei.relay' or info.get('CFBundleShortVersionString') != '3.0.0':
-    raise SystemExit('Unexpected Relay bundle identity/version')
+    raise SystemExit('Unexpected NetCare bundle identity/version')
 config = json.loads((app/'Contents/Resources/relay-commercial.json').read_text())
 if set(config) != {'origin','publicKey','development'} or config['development'] is not False:
     raise SystemExit('Release requires public-only configuration and development=false')
@@ -54,20 +54,47 @@ clean_signing_metadata
 # Re-sign inner Mach-O files first, then framework envelopes and finally the app.
 while IFS= read -r -d '' item; do
   if /usr/bin/file -b "$item" | /usr/bin/grep -q 'Mach-O'; then
-    /usr/bin/codesign --force --options runtime --timestamp --sign "$IDENTITY" "$item"
+    if [[ "$item" == "$APP/Contents/Library/LaunchServices/RelayHelper" ]]; then
+      /usr/bin/codesign --force --options runtime --timestamp --identifier com.wangxinlei.relay.helper --sign "$IDENTITY" "$item"
+    else
+      /usr/bin/codesign --force --options runtime --timestamp --sign "$IDENTITY" "$item"
+    fi
   fi
 done < <(/usr/bin/find "$APP/Contents" -type f -print0)
 while IFS= read -r -d '' framework; do
   /usr/bin/codesign --force --options runtime --timestamp --sign "$IDENTITY" "$framework"
 done < <(/usr/bin/find "$APP/Contents" -depth -type d -name '*.framework' -print0)
+# Seal the exact helper build into the outer app's signed Info dictionary.
+python3 - "$APP" <<'PY'
+import json, pathlib, plistlib, re, subprocess, sys
+app = pathlib.Path(sys.argv[1])
+helper = app / 'Contents/Library/LaunchServices/RelayHelper'
+identity = json.loads(subprocess.run([str(helper), '--identity'], check=True,
+    capture_output=True, text=True, timeout=10).stdout)
+unsafe = ('com.apple.security.get-task-allow', 'com.apple.security.cs.disable-library-validation',
+    'com.apple.security.cs.allow-dyld-environment-variables', 'com.apple.security.cs.allow-unsigned-executable-memory',
+    'com.apple.security.cs.disable-executable-page-protection')
+if (not all(identity.get(k) for k in ('valid', 'developer_id', 'hardened'))
+        or identity.get('adhoc') or identity.get('debugged')
+        or identity.get('identifier') != 'com.wangxinlei.relay.helper'
+        or not re.fullmatch('[A-Z0-9]{10}', identity.get('team', ''))
+        or not re.fullmatch('[a-f0-9]{40}', identity.get('cdhash', ''))
+        or any(identity.get('entitlements', {}).get(k) for k in unsafe)):
+    raise SystemExit('The native helper is not a trusted hardened Developer ID build')
+path = app / 'Contents/Info.plist'
+info = plistlib.loads(path.read_bytes())
+info['RelayHelperCDHash'] = identity['cdhash']
+path.write_bytes(plistlib.dumps(info))
+PY
 /usr/bin/codesign --force --options runtime --timestamp --sign "$IDENTITY" "$APP"
 /usr/bin/codesign --verify --deep --strict --verbose=2 "$APP"
+"$APP/Contents/Library/LaunchServices/RelayHelper" --verify-pair
 if [[ "$NOTARIZE" == 1 ]]; then
   TEMP_DIR="$(mktemp -d "${TMPDIR:-/tmp}/relay-notary.XXXXXX")"
   trap 'rm -rf "$TEMP_DIR"' EXIT
-  /usr/bin/ditto -c -k --norsrc --extattr --qtn --keepParent "$APP" "$TEMP_DIR/Relay.zip"
+  /usr/bin/ditto -c -k --norsrc --extattr --qtn --keepParent "$APP" "$TEMP_DIR/NetCare.zip"
   # This is the only upload operation and runs only with explicit --notarize.
-  xcrun notarytool submit "$TEMP_DIR/Relay.zip" --keychain-profile "$PROFILE" --wait --output-format json > "$TEMP_DIR/result.json"
+  xcrun notarytool submit "$TEMP_DIR/NetCare.zip" --keychain-profile "$PROFILE" --wait --output-format json > "$TEMP_DIR/result.json"
   python3 - "$TEMP_DIR/result.json" <<'PY'
 import json,sys
 if json.load(open(sys.argv[1])).get('status') != 'Accepted':

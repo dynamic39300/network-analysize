@@ -94,7 +94,7 @@ class KeychainStore:
         except PasswordDeleteError:
             pass
         except Exception as exc:
-            raise AccountError("无法清除钥匙串，请在系统钥匙串中移除 Relay 账号。") from exc
+            raise AccountError("无法清除钥匙串，请在系统钥匙串中移除 NetCare 账号。") from exc
 
 
 class _NoRedirect(HTTPRedirectHandler):
@@ -156,7 +156,7 @@ class AccountClient:
         if bearer:
             token = self.session.get("accessToken")
             if not token:
-                raise AccountError("请先登录 Relay 账号。", 401)
+                raise AccountError("请先登录 NetCare 账号。", 401)
             headers["Authorization"] = "Bearer " + token
         body = None
         if data is not None:

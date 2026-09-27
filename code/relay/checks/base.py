@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Relay 检测插件基类
+NetCare 检测插件基类
 所有检测插件必须继承此类并实现 check() 方法
 """
 

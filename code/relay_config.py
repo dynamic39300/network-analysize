@@ -4,6 +4,7 @@ import json
 import os
 from pathlib import Path
 import re
+import sys
 
 from relay.commands import checked, run_command
 from relay.network import ip_addresses, process_names, tunnel_interfaces
@@ -12,6 +13,7 @@ from relay.network import ip_addresses, process_names, tunnel_interfaces
 DEFAULT_CONFIG = {
     'schema_version': 2,
     'general': {'check_interval': 30, 'log_file': '~/Library/Logs/Relay.log', 'auto_fix': False, 'preset': 'observe'},
+    'guard': {'enabled': False},
     'wifi': {'enabled': True, 'interface': 'auto', 'service_name': 'auto'},
     'vpn': {
         'enabled': True, 'mode': 'auto', 'route_anchors': [], 'company_dns': [],
@@ -92,9 +94,11 @@ class ConfigManager:
         return False
 
     def _validate(self):
-        for section in ('general', 'wifi', 'vpn', 'proxy', 'dns', 'ipv6', 'reachability', 'fix_rules'):
+        for section in ('general', 'guard', 'wifi', 'vpn', 'proxy', 'dns', 'ipv6', 'reachability', 'fix_rules'):
             if not isinstance(self.config.get(section), dict):
                 raise ValueError(f'{section} 必须为对象')
+        if not isinstance(self.get('guard.enabled'), bool):
+            raise ValueError('guard.enabled 必须为布尔值')
         interval = self.get('general.check_interval')
         if not isinstance(interval, int) or isinstance(interval, bool) or not 5 <= interval <= 3600:
             raise ValueError('检测间隔必须在 5 至 3600 秒之间')
@@ -143,6 +147,10 @@ class ConfigManager:
         return True
 
     def auto_detect(self):
+        if sys.platform == 'win32':
+            self._detected = {'platform': 'windows', 'preset': self.get('general.preset', 'observe'),
+                              'message': 'Windows environment is collected by the scoped observer; policy is unchanged.'}
+            return copy.deepcopy(self._detected)
         detected = {}
         for name, getter in (('wifi', self._detect_wifi), ('vpn', self._detect_vpn), ('proxy', self._detect_proxy)):
             try:

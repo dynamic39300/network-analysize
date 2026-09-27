@@ -261,6 +261,9 @@ class HistoryTests(unittest.TestCase):
             self.assertTrue(history.compare_latest()["available"])
             self.assertTrue(any(x["field"] == "vpn" for x in history.compare_latest()["changes"]))
             paths = history.export(Path(tmp) / "exports")
+            self.assertEqual(json.loads(paths[0].read_text())["product"], "NetCare")
+            self.assertTrue(all(path.name.startswith("netcare-report-") for path in paths))
+            self.assertIn("NetCare 脱敏诊断报告", paths[1].read_text())
             texts = "\n".join(p.read_text() for p in paths)
             for secret in [
                 "192.168.88.10",

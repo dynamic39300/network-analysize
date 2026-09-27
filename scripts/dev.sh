@@ -1,5 +1,5 @@
 #!/bin/bash
-# Local-only workspace entry point; never installs over the running Relay app.
+# Local-only workspace entry point; never installs over the running NetCare app.
 set -euo pipefail
 RELAY_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 MODE="${1:-web}"
@@ -19,7 +19,7 @@ uv sync --directory "$RELAY_ROOT/backend" --locked
 uv run --directory "$RELAY_ROOT/backend" python manage.py migrate --noinput
 uv run --directory "$RELAY_ROOT/backend" python manage.py init_development
 if [[ "$MODE" == web ]]; then
-  echo 'Relay preview: http://127.0.0.1:8016/ (local email files; real payments disabled)'
+  echo 'NetCare preview: http://127.0.0.1:8016/ (local email files; real payments disabled)'
   exec uv run --directory "$RELAY_ROOT/backend" python manage.py runserver 127.0.0.1:8016 --noreload
 fi
 [[ "$(uname -s)" == Darwin ]] || { echo 'Desktop mode requires macOS.' >&2; exit 1; }

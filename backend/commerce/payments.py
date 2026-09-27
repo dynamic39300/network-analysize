@@ -145,7 +145,7 @@ class WeChat:
             {
                 "appid": self.cfg["APP_ID"],
                 "mchid": self.cfg["MCH_ID"],
-                "description": f"Relay {order.months}个月使用权",
+                "description": f"NetCare {order.months}个月使用权",
                 "out_trade_no": order.pk.hex,
                 "notify_url": settings.PUBLIC_URL + "/api/v1/payments/wechat/notify",
                 "amount": {"total": order.amount, "currency": "CNY"},
@@ -331,7 +331,7 @@ class Alipay:
                 "out_trade_no": order.pk.hex,
                 "product_code": "FAST_INSTANT_TRADE_PAY",
                 "total_amount": f"{order.amount / 100:.2f}",
-                "subject": f"Relay {order.months}个月使用权",
+                "subject": f"NetCare {order.months}个月使用权",
                 "timeout_express": "30m",
             },
         )

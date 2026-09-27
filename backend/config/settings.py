@@ -177,7 +177,7 @@ EMAIL_HOST_USER = os.getenv("EMAIL_HOST_USER", "")
 EMAIL_HOST_PASSWORD = os.getenv("EMAIL_HOST_PASSWORD", "")
 EMAIL_USE_TLS = os.getenv("EMAIL_USE_TLS", "1") == "1"
 EMAIL_TIMEOUT = 10
-DEFAULT_FROM_EMAIL = os.getenv("DEFAULT_FROM_EMAIL", "Relay <development@localhost>")
+DEFAULT_FROM_EMAIL = os.getenv("DEFAULT_FROM_EMAIL", "NetCare <development@localhost>")
 TERMS_VERSION = "2026-09-26"
 PRIVACY_VERSION = "2026-09-26"
 SUPPORT_EMAIL = os.getenv("SUPPORT_EMAIL", "")

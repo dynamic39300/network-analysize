@@ -6,8 +6,11 @@ dependencies = [
   "rumps==0.4.0; sys_platform == 'darwin'",
   "pyobjc-core>=11.1,<12; sys_platform == 'darwin'",
   "pyobjc-framework-Cocoa>=11.1,<12; sys_platform == 'darwin'",
+  "pyobjc-framework-SystemConfiguration>=11.1,<12; sys_platform == 'darwin'",
+  "pyobjc-framework-ServiceManagement>=11.1,<12; sys_platform == 'darwin'",
   "cryptography>=50.0.1,<51",
   "keyring>=25.6,<26",
+  "jsonschema>=4.25,<5",
 ]
 
 [dependency-groups]

@@ -14,7 +14,7 @@ class WifiCheck(BaseCheck):
         iface = self.wifi_interface()
         data = all_interfaces.get(iface, {})
         addresses = data.get("addresses", [])
-        status.update(wifi_ip=addresses[0] if addresses else "", wifi_network="未知")
+        status.update(wifi_interface=iface, wifi_ip=addresses[0] if addresses else "", wifi_network="未知")
         if data.get("up") and addresses:
             status["wifi"] = "ok"
             result = self.runner(["/usr/sbin/networksetup", "-getairportnetwork", iface], timeout=5)

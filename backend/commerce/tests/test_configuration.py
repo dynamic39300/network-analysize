@@ -57,7 +57,7 @@ class ProductionConfigurationTests(SimpleTestCase):
             "EMAIL_HOST_USER": "test",
             "EMAIL_HOST_PASSWORD": "synthetic-not-real",
             "EMAIL_USE_TLS": "1",
-            "DEFAULT_FROM_EMAIL": "Relay <mail@example.test>",
+            "DEFAULT_FROM_EMAIL": "NetCare <mail@example.test>",
             "SUPPORT_EMAIL": "support@example.test",
             "LEGAL_ENTITY_NAME": "Synthetic Test Entity",
             "LICENSE_PRIVATE_KEY_FILE": str(path),

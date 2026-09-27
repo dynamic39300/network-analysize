@@ -1,4 +1,4 @@
-/* Relay native web design. One palette; panels 20px, controls 10px, tags 6px.
+/* NetCare native web design. One palette; panels 20px, controls 10px, tags 6px.
    Layer scale: header 10, mobile menu 11, notification 30, native dialog top-layer. */
 :root{color-scheme:light;--bg:#f7f8f9;--surface:#fdfefe;--subtle:#eef1f2;--text:#202629;--muted:#566168;--line:#d8dfe1;--strong:#222a2c;--on-strong:#f9fbfa;--accent:#216c53;--accent-bg:#e7f2ec;--warning:#793923;--warning-bg:#f7eee9;--focus:#217357;--shadow:0 20px 60px #3d4e5810;--font:-apple-system,BlinkMacSystemFont,"SF Pro Display","PingFang SC","Microsoft YaHei",sans-serif}
 [data-theme=dark]{color-scheme:dark;--bg:#14191c;--surface:#1d2428;--subtle:#232d31;--text:#edf1f3;--muted:#a5b2b9;--line:#364349;--strong:#e8efec;--on-strong:#15211c;--accent:#8ac6a8;--accent-bg:#223c30;--warning:#e3b39f;--warning-bg:#392d29;--focus:#94d1b4;--shadow:0 20px 60px #0b101422}

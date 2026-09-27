@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Relay 检测插件注册表
+NetCare 检测插件注册表
 自动发现并注册所有检测插件
 """
 

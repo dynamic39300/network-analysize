@@ -21,7 +21,7 @@ class RelayContractTests(TestCase):
 
     def test_public_configuration_and_prices_are_relay_specific(self):
         config = self.client.get("/api/v1/config").json()
-        self.assertEqual(config["productName"], "Relay")
+        self.assertEqual(config["productName"], "NetCare")
         self.assertEqual(
             [(p["id"], p["amount"], p["months"]) for p in config["plans"]],
             [("monthly", 1200, 1), ("yearly", 9800, 12)],
@@ -35,6 +35,15 @@ class RelayContractTests(TestCase):
         self.assertNotIn("publicKey", config)
         self.assertNotIn("code", config)
         self.assertEqual(self.client.get("/api/v1/orders/quote?planId=quarterly").status_code, 400)
+
+    def test_public_shell_and_login_email_use_netcare(self):
+        from django.core import mail
+        for route in ('/', '/features/', '/download/', '/pricing/', '/account/', '/privacy/', '/terms/', '/support/'):
+            response = self.client.get(route)
+            self.assertContains(response, 'NetCare')
+            self.assertNotContains(response, 'Relay')
+        auth.send_code('branding@example.test', '127.0.0.1')
+        self.assertEqual(mail.outbox[-1].subject, 'NetCare 登录验证码')
 
     def test_free_before_trial_and_after_expiration_with_no_signed_license(self):
         before = self.client.get("/api/v1/me").json()

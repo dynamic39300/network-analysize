@@ -19,6 +19,10 @@ from .models import (
 )
 from .payments import process_refund, synchronize_order
 
+admin.site.site_header = "NetCare 管理"
+admin.site.site_title = "NetCare 管理"
+admin.site.index_title = "账号与服务管理"
+
 
 class ReadOnlyAdmin(admin.ModelAdmin):
     def get_readonly_fields(self, request, obj=None):

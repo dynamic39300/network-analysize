@@ -63,7 +63,7 @@ def isolated_environment(directory, socket_directory, port):
             "PGPORT": str(port),
             "PGPASSFILE": str(directory / "nonexistent-pgpass"),
             "EMAIL_BACKEND": "django.core.mail.backends.locmem.EmailBackend",
-            "DEFAULT_FROM_EMAIL": "Relay <fixture@localhost>",
+            "DEFAULT_FROM_EMAIL": "NetCare <fixture@localhost>",
             "WECHAT_ENABLED": "0",
             "ALIPAY_ENABLED": "0",
             "SIMULATED_PAYMENTS": "0",

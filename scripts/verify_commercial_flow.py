@@ -136,7 +136,7 @@ def main():
                 )
             ).decode()
             client = AccountClient(CommercialConfig(origin, public, True), EphemeralStore())
-            attempt = client.begin_login("Synthetic Relay API validation")
+            attempt = client.begin_login("Synthetic NetCare API validation")
             assert not client.poll_login(attempt)
             request("/api/v1/desktop/approve", {"request": attempt["requestId"]})
             time.sleep(3.1)  # Respect the production-equivalent polling interval.

@@ -21,6 +21,7 @@ command -v uv >/dev/null || { echo 'uv is required.' >&2; exit 1; }
 uv sync --directory "$ROOT/apps/macos" --locked
 PYTHON="$ROOT/apps/macos/.venv/bin/python"
 "$PYTHON" -c 'import platform,sys; assert sys.version_info[:2] == (3,12) and platform.machine() == "arm64"'
+"$PYTHON" "$ROOT/scripts/build-native-ipc.py"
 STAGING="$ROOT/build/macos-inputs"
 ICONSET="$STAGING/Relay.iconset"
 mkdir -p "$ICONSET" "$ROOT/dist/macos"
@@ -38,7 +39,11 @@ BUILD_OUTPUT="$(mktemp -d "${TMPDIR:-/tmp}/relay-build.XXXXXX")"
 trap 'rm -rf "$BUILD_OUTPUT"' EXIT
 "$PYTHON" -m PyInstaller --clean --noconfirm --distpath "$BUILD_OUTPUT" \
   --workpath "$ROOT/build/pyinstaller" "$ROOT/apps/macos/Relay.spec"
-APP="$BUILD_OUTPUT/Relay.app"
+APP="$BUILD_OUTPUT/NetCare.app"
+mkdir -p "$APP/Contents/Library/LaunchAgents" "$APP/Contents/Library/LaunchDaemons" "$APP/Contents/Library/LaunchServices"
+/bin/cp "$ROOT/apps/macos/com.wangxinlei.relay.agent.plist" "$APP/Contents/Library/LaunchAgents/"
+/bin/cp "$ROOT/apps/macos/com.wangxinlei.relay.helper.plist" "$APP/Contents/Library/LaunchDaemons/"
+/bin/cp "$ROOT/build/macos-native/RelayHelper" "$APP/Contents/Library/LaunchServices/RelayHelper"
 clean_signing_metadata() {
   # Remove only Apple's two prohibited signing attributes, never quarantine or
   # other protection metadata. -s handles symlinks without following them.
@@ -53,15 +58,19 @@ clean_signing_metadata() {
 clean_signing_metadata
 /usr/bin/codesign --force --deep --sign - "$APP"
 /usr/bin/codesign --verify --deep --strict "$APP"
-/usr/bin/lipo "$APP/Contents/MacOS/Relay" -verify_arch arm64
+/usr/bin/lipo "$APP/Contents/MacOS/NetCare" -verify_arch arm64
 "$PYTHON" - "$ROOT" "$APP" "$RELEASE" <<'PY'
 import hashlib, json, pathlib, platform, sys
 from importlib.metadata import version
 root, app = map(pathlib.Path, sys.argv[1:3])
 paths = [root / 'apps/macos/uv.lock', root / 'apps/macos/Relay.spec',
+         root / 'scripts/build-native-ipc.py', root / 'scripts/sign-macos.sh',
          root / 'scripts/build-macos.sh',
          root / 'code/network-doctor-menu.py', root / 'code/relay_config.py',
-         root / 'assets/logo/Relay-logo-final.png'] + sorted((root / 'code/relay').rglob('*.py'))
+         root / 'code/relay_app.py', root / 'code/relay_core.py',
+         root / 'apps/macos/com.wangxinlei.relay.agent.plist', root / 'code/app_icon.png',
+         root / 'apps/macos/com.wangxinlei.relay.helper.plist',
+         root / 'assets/logo/Relay-logo-final.png'] + sorted((root / 'code/relay').rglob('*.py')) + sorted((root / 'apps/macos/native').glob('*'))
 metadata = {'version':'3.0.0', 'bundleIdentifier':'com.wangxinlei.relay',
             'architecture':platform.machine(), 'python':platform.python_version(),
             'pyinstaller':version('pyinstaller'), 'signing':'ad-hoc, not Developer ID; not notarized',
@@ -72,22 +81,23 @@ metadata['commercialConfigSHA256'] = hashlib.sha256(config.read_bytes()).hexdige
 (root / 'dist/macos/build-metadata.json').write_text(json.dumps(metadata, indent=2) + '\n')
 PY
 if [[ "$SELF_CHECK" == 1 ]]; then
-  "$APP/Contents/MacOS/Relay" --self-check
+  "$APP/Contents/MacOS/NetCare" --self-check
+  "$APP/Contents/Library/LaunchServices/RelayHelper" --self-check
 fi
 # Finder/tools may restore FinderInfo after the earlier verification. Always
 # perform this final narrow cleanup after the optional execution, then verify.
 clean_signing_metadata
 /usr/bin/codesign --verify --deep --strict "$APP"
-ARCHIVE="$ROOT/dist/macos/Relay-3.0.0-arm64-local.zip"
-/usr/bin/ditto -c -k --norsrc --extattr --qtn --keepParent "$APP" "$BUILD_OUTPUT/Relay.zip"
+ARCHIVE="$ROOT/dist/macos/NetCare-3.0.0-arm64-local.zip"
+/usr/bin/ditto -c -k --norsrc --extattr --qtn --keepParent "$APP" "$BUILD_OUTPUT/NetCare.zip"
 mkdir -p "$BUILD_OUTPUT/verify"
-/usr/bin/ditto -x -k "$BUILD_OUTPUT/Relay.zip" "$BUILD_OUTPUT/verify"
-/usr/bin/codesign --verify --deep --strict "$BUILD_OUTPUT/verify/Relay.app"
+/usr/bin/ditto -x -k "$BUILD_OUTPUT/NetCare.zip" "$BUILD_OUTPUT/verify"
+/usr/bin/codesign --verify --deep --strict "$BUILD_OUTPUT/verify/NetCare.app"
 # The ZIP is the verified immutable handoff. Finder may later alter metadata on
 # the convenient expanded Documents copy, so archive verification precedes it.
-/bin/cp "$BUILD_OUTPUT/Relay.zip" "$ARCHIVE"
-DESTINATION="$ROOT/dist/macos/Relay.app"
-[[ "$DESTINATION" == "$ROOT/dist/macos/Relay.app" ]] || exit 1
+/bin/cp "$BUILD_OUTPUT/NetCare.zip" "$ARCHIVE"
+DESTINATION="$ROOT/dist/macos/NetCare.app"
+[[ "$DESTINATION" == "$ROOT/dist/macos/NetCare.app" ]] || exit 1
 /bin/rm -rf "$DESTINATION"
 /usr/bin/ditto --norsrc --extattr --qtn "$APP" "$DESTINATION"
 "$PYTHON" - "$ROOT/dist/macos/build-metadata.json" "$ARCHIVE" <<'PY'

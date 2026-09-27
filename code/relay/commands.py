@@ -1,4 +1,4 @@
-"""The only subprocess boundary used by diagnostics and repairs.
+"""Subprocess boundary for fixed diagnostics and mature repairs; dynamic jobs use jobs.py.
 
 Keep this module independent of the UI and commercial services. Tests inject a
 runner with the same (argv, timeout) signature; no shell is involved.
@@ -29,8 +29,9 @@ def run_command(argv, timeout=10):
         raise ValueError("Commands must be nonempty argv sequences")
     try:
         result = subprocess.run(
-            list(argv), capture_output=True, text=True, timeout=timeout,
+            list(argv), capture_output=True, text=True, encoding='utf-8', errors='replace', timeout=timeout,
             env={**os.environ, "LC_ALL": "C"}, shell=False,
+            creationflags=getattr(subprocess, 'CREATE_NO_WINDOW', 0),
         )
         return CommandResult(result.stdout, result.stderr, result.returncode)
     except subprocess.TimeoutExpired as exc:

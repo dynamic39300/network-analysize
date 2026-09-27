@@ -167,7 +167,7 @@ class HistoryStore:
         directory = Path(directory)
         directory.mkdir(mode=0o700, parents=True, exist_ok=True)
         payload = {
-            "product": "Relay",
+            "product": "NetCare",
             "schema": "diagnostic-bundle-v1",
             "redacted": True,
             "generatedAt": int(self.clock()),
@@ -175,13 +175,13 @@ class HistoryStore:
             "comparison": self.compare_latest(),
         }
         stem = (
-            "relay-report-"
+            "netcare-report-"
             + datetime.fromtimestamp(self.clock(), timezone.utc).strftime("%Y%m%dT%H%M%SZ")
             + "-"
             + uuid.uuid4().hex[:6]
         )
         paths = [directory / (stem + ".json"), directory / (stem + ".html")]
-        title = "Relay 脱敏诊断报告"
+        title = "NetCare 脱敏诊断报告"
         body = (
             '<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>'
             + title

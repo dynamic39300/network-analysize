@@ -1,6 +1,6 @@
-# Relay 商业服务
+# NetCare 商业服务
 
-独立的 Relay 官网与商业 API，Python 3.12 / Django 5.2 LTS。开发 SQLite；生产 PostgreSQL。账号、签名密钥、数据库、邮件和支付运营配置与参考产品独立。接口基线见 [SPEC-001](../docs/architecture/specs/SPEC-001-commercialization.md)。
+独立的 NetCare 官网与商业 API，Python 3.12 / Django 5.2 LTS。开发 SQLite；生产 PostgreSQL。账号、签名密钥、数据库、邮件和支付运营配置与参考产品独立。接口基线见 [SPEC-001](../docs/architecture/specs/SPEC-001-commercialization.md)。
 
 这里的自动化结果验证本地协议与模拟账本闭环。**本地模拟不等于真实商户验证、真实邮件投递、生产 PostgreSQL 并发验收或 Apple 签名/公证验收。** 未配置的真实支付默认关闭，未经核验的下载不会公开为可用。
 
@@ -64,7 +64,7 @@ HTTPS 反向代理必须覆盖转发头，且后端不可直接暴露；仅此�
 
 定时执行 `python manage.py reconcile_payments` 对待付款/退款查单，`python manage.py purge_expired_auth` 清理过期认证工件。`/healthz` 是进程存活探针，`/readyz` 检查数据库以及生产签名密钥；它们不声称邮件和商户端到端可用。
 
-升级前备份数据库与签名密钥，先执行迁移；本轮 `0004_relay_device_polling` 去掉旧一次性交换码字段，加入轮询时间与最低 OS 元数据。旧 AppSwitcher callback 客户端不兼容新的 Relay API。回退必须同时协调 API/客户端版本；数据库中的已完成交易与权益不可回删。生产环境先在独立预发布数据库验证迁移与恢复。
+升级前备份数据库与签名密钥，先执行迁移；本轮 `0004_relay_device_polling` 去掉旧一次性交换码字段，加入轮询时间与最低 OS 元数据。旧 AppSwitcher callback 客户端不兼容新的 NetCare API。回退必须同时协调 API/客户端版本；数据库中的已完成交易与权益不可回删。生产环境先在独立预发布数据库验证迁移与恢复。
 
 ## 验证
 
