@@ -33,6 +33,7 @@ class _MacRegistration:
 class MacBackgroundService(_MacRegistration):
     def __init__(self, data_dir):
         from .core import default_directory
+        from .mac_identity import production_requirement
         self.app = None
         self.reason = 'bundle_required'
         if sys.platform != 'darwin' or not getattr(sys, 'frozen', False):
@@ -42,6 +43,9 @@ class MacBackgroundService(_MacRegistration):
             return
         if Path(data_dir).absolute() != default_directory().absolute():
             self.reason = 'default_directory_required'
+            return
+        if not production_requirement():
+            self.reason = 'signed_bundle_required'
             return
         bundle = Path(sys.executable).resolve().parents[2]
         if not (bundle / 'Contents/Library/LaunchAgents' / PLIST).is_file():

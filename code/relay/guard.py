@@ -188,7 +188,9 @@ class ProbeBudget:
         # A size-limited body still provides valid HTTP reachability evidence.
         # The diagnostics never claim to validate response-body correctness.
         status = result.stdout.strip().split()[:1]
-        if (is_request and result.returncode == 63 and not result.timed_out
+        size_limited = (result.returncode == 63 or result.returncode == 56
+                        and 'Exceeded the maximum allowed file size' in result.stderr)
+        if (is_request and size_limited and not result.timed_out
                 and status and status[0].isdigit() and 100 <= int(status[0]) <= 599):
             return CommandResult(result.stdout, 'response body limited by guard budget', 0)
         return result

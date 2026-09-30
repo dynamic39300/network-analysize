@@ -64,6 +64,8 @@ def _short_result(section, row, relevant, status):
         return {'待检测': '尚未检测', '检测中': '正在检查，请稍候',
                 '未检测': '当前未启用这项检查', '未确认': '检查还没有明确结果，需要再确认'}[row['state']]
     if relevant:
+        if section == 'dns' and any(issue[1].startswith('dns_reference_') for issue in relevant):
+            return '当前解析地址无法连接，参考解析地址已实测可访问'
         if section == 'reachability':
             observations = status.get('reachability_results', {}).values()
             if any(item.get('transport') != 'ok' for item in observations):

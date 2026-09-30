@@ -34,6 +34,10 @@ ad-hoc 构建后可运行 `apps/macos/.venv/bin/python scripts/verify_lifecycle_
 
 ## 商业公钥配置
 
+本地 ZIP 构建完成后，运行 `scripts/package-macos-dmg.sh` 生成可拖入 Applications 的 `dist/macos/NetCare-3.0.0-arm64-local.dmg`，附安装说明和 SHA-256。它仍为未公证的 Apple Silicon 开发预览版。ad-hoc 默认目录只启动临时核心，不提供后台服务注册；Developer ID 版本仍要求系统批准。构建支持通过 `UV_PROJECT_ENVIRONMENT` 指定项目目录外的虚拟环境。
+
+内置的公开 Google 保护目标在无 VPN、无代理且手工 DNS 的系统路径访问超时时，会对固定的 `www.google.com` 向 `1.1.1.1` 做一次参考解析，并对参考地址做只读、保留 HTTPS 主机名的访问测试；不会把自定义目标或内网域名交给公共解析器。如果系统解析地址无法连接、参考地址实测能响应，总览展示证据与“审阅修复方案”。用户确认后才尝试修改当前网络服务 DNS；执行前重新检查、保存原值，执行后复验保护目标，失败时尝试恢复。该方案只支持逐次授权，不能授予自动持续修复信任。它证明的是当前解析结果或到该地址的路径异常，不能仅凭地址不同断言 DNS 服务本身故障；其他无成熟方案的异常仍应显示需要进一步调查。
+
 可选 `--commercial-config /absolute/public-config.json` 将公开配置复制为 `Contents/Resources/relay-commercial.json`，只允许三个键：
 
 ```json

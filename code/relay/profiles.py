@@ -111,7 +111,10 @@ def evaluate_target(target, snapshot, fresh):
             detail = observation.get('limitation') or '预期访问路径尚未验证'
         elif observation.get('transport') != 'ok':
             state = 'unknown' if observation.get('transport') in ('unknown', 'check_failed') else 'degraded'
-            detail = '访问结果：' + str(observation.get('transport', 'unknown'))
+            diagnosis = observation.get('diagnosis', {})
+            detail = ('当前域名解析地址连接失败；参考解析地址已实测可访问，可审阅 DNS 修复方案'
+                      if diagnosis.get('kind') == 'dns_reference_candidate' else
+                      '访问结果：' + str(observation.get('transport', 'unknown')))
         elif target['requirement'] == 'service' and observation.get('service') != 'responding':
             state = 'auth_required' if observation.get('service') == 'auth_required' else 'degraded'
             detail = '服务返回 HTTP ' + str(observation.get('http_status', '未知'))

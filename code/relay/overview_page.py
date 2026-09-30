@@ -32,6 +32,9 @@ class OverviewActions(NSObject):
     def profiles_(self, sender):
         self.owner.navigate('profiles')
 
+    def fixTarget_(self, sender):
+        self.owner.controller.prepare_fix([self.owner.target_issues[sender.tag()]])
+
     def expand_(self, sender):
         key = self.owner.expansion_keys[sender.tag()]
         if key in self.owner.expanded:
@@ -45,6 +48,7 @@ class OverviewPage:
     def __init__(self, controller, navigate):
         self.controller, self.navigate = controller, navigate
         self.state, self.expanded, self.expansion_keys = {}, set(), []
+        self.target_issues = []
         self.root = FlippedView.alloc().initWithFrame_(NSMakeRect(0, 0, 800, 600))
         self.document = FlippedView.alloc().init()
         self.scroll = NSScrollView.alloc().init()
@@ -102,6 +106,7 @@ class OverviewPage:
                 if parent is self.document or child not in (self.guard, self.check, self.investigate, self.stop, self.scroll):
                     child.removeFromSuperview()
         self.expansion_keys = []
+        self.target_issues = []
         place(self.root, label('总览', 20, bold=True), 22, 14, 100, 30)
         place(self.root, label('守护', 12), width - 352, 21, 40, 24)
         place(self.root, self.guard, width - 312, 18, 44, 28)
@@ -140,6 +145,15 @@ class OverviewPage:
             place(self.document, label(row['label'], 12), w - 168, y + 4, 146, 25)
             y += max(30, name_h + 4)
             y = self.line(row['path_label'] + ' · ' + row['summary'], 50, y, w - 72, secondary=True) + 6
+            for explanation in row.get('diagnosis_lines', []):
+                y = self.line(explanation, 50, y, w - 72, secondary=True) + 3
+            if row.get('repair_issue') and self.state.get('ready') and not self.state.get('busy') \
+                    and self.state.get('run_stage') not in ('awaiting_authorization', 'authorized'):
+                control = button('审阅修复方案', self.actions, 'fixTarget:', 'checkmark.shield')
+                control.setTag_(len(self.target_issues))
+                self.target_issues.append(row['repair_issue'])
+                place(self.document, control, 50, y, 144, 29)
+                y += 36
             separator(self.document, 50, y, w - 72)
             y += 8
         y = self.line('检测详情', 22, y + 16, w - 44, size=15, bold=True) + 6

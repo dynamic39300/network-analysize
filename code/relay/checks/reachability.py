@@ -1,6 +1,8 @@
 """Separate transport reachability from authentication and service failures."""
 from urllib.parse import urlsplit
 import ipaddress
+import re
+from ..commands import CommandResult
 from .base import BaseCheck, register
 from ..profiles import definition_hash, scope_state, target_key
 from ..target_paths import pinned_host_option, route_interface, vpn_destination
@@ -11,10 +13,58 @@ class ReachabilityCheck(BaseCheck):
     name = "reachability"
     display_name = "连通性"
     description = "区分 DNS、连接、TLS、HTTP 和服务拒绝"
+    REFERENCE_RESOLVER = '1.1.1.1'
+    REFERENCE_TARGET = 'https://www.google.com'
 
     def __init__(self, config=None, runner=None, curl_path='/usr/bin/curl', null_device='/dev/null', resolve_vpn=None):
         super().__init__(config, runner)
         self.curl_path, self.null_device, self.resolve_vpn = curl_path, null_device, resolve_vpn or vpn_destination
+
+    def _reference_dns_candidate(self, target, status, args):
+        """Compare one built-in public target; never send user-defined hosts to a public resolver."""
+        def unavailable(reason):
+            status['dns_reference_probe_reason'] = reason
+            return None
+        if (target.get('url') != self.REFERENCE_TARGET or target.get('name') != 'Google'
+                or target.get('expected_path', 'system') != 'system'
+                or status.get('vpn') != 'off' or status.get('vpn_path') != 'off'
+                or status.get('proxy') != 'off' or status.get('proxy_pac')
+                or status.get('proxy_constraints', {}).get('scoped')
+                or status.get('dns_mode') != 'manual'
+                or self.REFERENCE_RESOLVER in status.get('dns_manual_servers', [])):
+            return unavailable('not_eligible')
+        try:
+            current = self.runner(['/usr/bin/dscacheutil', '-q', 'host', '-a', 'name', 'www.google.com'], timeout=5)
+            alternate = self.runner(['/usr/bin/dig', '+time=2', '+tries=1', '+short', 'A',
+                                     'www.google.com', '@' + self.REFERENCE_RESOLVER], timeout=4)
+            if not (isinstance(current, CommandResult) and current.ok
+                    and isinstance(alternate, CommandResult) and alternate.ok):
+                return unavailable('lookup_incomplete')
+            current_ips = {value for value in re.findall(r'^ip_address:\s*(\S+)', current.stdout, re.M)
+                           if self._public_ipv4(value)}
+            reference_ips = [value for value in alternate.stdout.splitlines() if self._public_ipv4(value)]
+            if not current_ips or not reference_ips or set(reference_ips) & current_ips:
+                return unavailable('addresses_not_distinct')
+            address = reference_ips[0]
+            trial = self.runner(args + ['--head', '--resolve', 'www.google.com:443:' + address,
+                                        '--', self.REFERENCE_TARGET], timeout=int(target.get('timeout', 8)) + 2)
+            if not isinstance(trial, CommandResult) or not trial.ok or not trial.stdout.strip().isdigit():
+                return unavailable('reference_access_failed')
+            if not 100 <= int(trial.stdout.strip()) <= 399:
+                return unavailable('reference_service_not_ready')
+            return {'kind': 'dns_reference_candidate', 'resolver': self.REFERENCE_RESOLVER,
+                    'target_id': target.get('id'), 'current_address': sorted(current_ips)[0],
+                    'verified_address': address, 'http_status': int(trial.stdout.strip())}
+        except (ValueError, TypeError, AssertionError):
+            return unavailable('probe_incomplete')
+
+    @staticmethod
+    def _public_ipv4(value):
+        try:
+            address = ipaddress.ip_address(value.strip())
+            return address.version == 4 and address.is_global
+        except ValueError:
+            return False
 
     def check(self, status):
         issues, observations = [], {}
@@ -87,6 +137,15 @@ class ReachabilityCheck(BaseCheck):
                 observation.update(transport=category, service="unavailable")
                 status[key] = "unknown" if category == "check_failed" else "error"
                 issues.append(("medium", f"reachability_{key}", f"{name} 检测异常：{category}"))
+                if category in ('timeout', 'connect_error') and path == 'direct':
+                    candidate = self._reference_dns_candidate(target, status, args)
+                    if candidate:
+                        observation['diagnosis'] = candidate
+                        status['dns_reference_candidate'] = candidate
+                        issues.append(('medium', 'dns_reference_' + key,
+                                       '当前解析地址无法访问，参考解析地址已实测可访问'))
+                    else:
+                        observation['diagnosis_limit'] = status.pop('dns_reference_probe_reason', 'probe_incomplete')
                 continue
             fields = result.stdout.strip().split()
             code_text = fields[0] if fields else ''

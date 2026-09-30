@@ -463,6 +463,27 @@ class MacServiceTests(unittest.TestCase):
         with self.assertRaises(NotImplementedError):
             service.unregister()
 
+    def test_adhoc_default_directory_uses_temporary_core_without_registration(self):
+        from relay.core import default_directory
+        with patch('relay.mac_service.sys.platform', 'darwin'), \
+                patch('relay.mac_service.sys.frozen', True, create=True), \
+                patch('relay.mac_service.platform.mac_ver', return_value=('26.0', (), '')), \
+                patch('relay.mac_identity.production_requirement', return_value=None):
+            service = MacBackgroundService(default_directory())
+        self.assertEqual(service.status(), {'available': False, 'state': 'unavailable',
+            'reason': 'signed_bundle_required'})
+        with self.assertRaises(NotImplementedError):
+            service.register()
+
+    def test_invalid_bundle_identity_does_not_fall_back(self):
+        from relay.core import default_directory
+        with patch('relay.mac_service.sys.platform', 'darwin'), \
+                patch('relay.mac_service.sys.frozen', True, create=True), \
+                patch('relay.mac_service.platform.mac_ver', return_value=('26.0', (), '')), \
+                patch('relay.mac_identity.production_requirement', side_effect=PermissionError):
+            with self.assertRaises(PermissionError):
+                MacBackgroundService(default_directory())
+
     def test_bundle_plist_is_user_session_and_contains_no_keepalive_after_clean_exit(self):
         with (ROOT / 'apps/macos' / (LABEL + '.plist')).open('rb') as stream:
             value = plistlib.load(stream)

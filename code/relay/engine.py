@@ -235,6 +235,15 @@ class FixEngine:
                     continue
                 servers = ip_addresses(self._get('dns.public_dns', []))
                 fields = [('dns', servers, '恢复你保存的日常上网地址设置' if servers else '让网络自动提供网站地址设置')]
+            elif kind.startswith('dns_reference_'):
+                candidate = status.get('dns_reference_candidate', {})
+                if (candidate.get('kind') == 'dns_reference_candidate'
+                        and kind == 'dns_reference_' + str(candidate.get('target_id'))
+                        and candidate.get('resolver') == '1.1.1.1'
+                        and status.get('vpn') == 'off' and status.get('vpn_path') == 'off'
+                        and status.get('proxy') == 'off' and status.get('dns_mode') == 'manual'):
+                    fields = [('dns', ['1.1.1.1'],
+                               '将此网络服务的 DNS 改为已实测可访问的参考解析器；影响全部域名，验证失败会恢复原配置')]
             elif kind == 'ipv6_enabled' and self._get('ipv6.should_be', 'observe') == 'off':
                 fields = [('ipv6', 'Off', '按你保存的设置关闭 IPv6')]
             elif kind == 'proxy_leftover':

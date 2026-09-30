@@ -148,6 +148,21 @@ class OverviewTests(unittest.TestCase):
         self.assertEqual(result['coverage'], '0/1 个目标符合预期')
         self.assertEqual(result['targets'][0]['path_label'], '已确认 VPN')
 
+    def test_confirmed_dns_candidate_explains_cause_and_offers_review(self):
+        state = self.state()
+        target = state['agent']['profile']['targets'][0]
+        target.update(id='google', name='Google', state='degraded', label='不符合预期',
+                      observation={'diagnosis': {'kind': 'dns_reference_candidate',
+                          'current_address': '69.171.235.22', 'resolver': '1.1.1.1',
+                          'verified_address': '142.251.153.119', 'http_status': 200}})
+        state['repair_options'] = {'dns_reference_google': ['审阅 DNS 修改']}
+        row = overview(state)['targets'][0]
+        self.assertEqual(row['repair_issue'], 'dns_reference_google')
+        self.assertIn('系统解析', row['diagnosis_lines'][0])
+        self.assertIn('HTTP 200', row['diagnosis_lines'][1])
+        state['repair_options'] = {}
+        self.assertEqual(overview(state)['targets'][0]['repair_issue'], '')
+
     def test_expired_and_disconnected_observations_are_not_currently_healthy(self):
         state = self.state()
         state['agent']['profile']['observed_at'] -= 700

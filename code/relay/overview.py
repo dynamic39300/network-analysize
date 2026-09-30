@@ -22,6 +22,17 @@ def overview(state):
         elif not snapshot.get('last_check'):
             current.update(state='unknown', label='尚未检测', summary='尚无当前档案的观测')
         current['path_label'] = PATHS.get(row['expected_path'], '路径未确认')
+        diagnosis = current.get('observation', {}).get('diagnosis', {})
+        issue = 'dns_reference_' + current['id']
+        current['repair_issue'] = (issue if connected and current['state'] == 'degraded'
+                                   and diagnosis.get('kind') == 'dns_reference_candidate'
+                                   and issue in state.get('repair_options', {}) else '')
+        current['diagnosis_lines'] = ([
+            '系统解析 → ' + diagnosis['current_address'] + ' → 连接失败',
+            '参考解析 ' + diagnosis['resolver'] + ' → ' + diagnosis['verified_address']
+            + ' → 网站已响应（HTTP ' + str(diagnosis['http_status']) + '）',
+            '这支持“当前解析结果或到该地址的路径异常”；更换 DNS 后仍须复测全部保护目标。',
+        ] if current['repair_issue'] else [])
         targets.append(current)
     report = state.get('report') or {}
     stage = state.get('run_stage') or report.get('stage')

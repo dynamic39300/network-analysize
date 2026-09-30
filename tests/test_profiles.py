@@ -245,6 +245,94 @@ class ProfilesTests(unittest.TestCase):
         self.assertEqual(self.mac.manual_dns, ['8.8.8.8'])
         self.assertTrue(any('退化' in line for line in run.results))
 
+    def test_public_target_dns_evidence_requests_exact_repair_and_verifies(self):
+        self.profiles.save({'schema': SCHEMA, 'name': '上网', 'targets': [
+            {'name': 'Google', 'url': 'https://www.google.com', 'expected_path': 'system'}]})
+        self.mac.manual_dns = ['223.5.5.5']
+        self.mac.effective_dns = ['223.5.5.5']
+        self.runtime = ProfileConfig(self.config, self.profiles)
+        def boundary(argv, timeout=10):
+            name = Path(argv[0]).name
+            if name == 'dscacheutil':
+                return CommandResult('name: www.google.com\nip_address: 69.171.235.22\n')
+            if name == 'dig':
+                return CommandResult('142.251.153.119\n')
+            if name == 'curl' and 'https://www.google.com' in argv:
+                if '--resolve' in argv or self.mac.manual_dns == ['1.1.1.1']:
+                    return CommandResult('200')
+                return CommandResult('000', 'timeout', 28)
+            return self.mac(argv, timeout)
+        self.engine = DetectionEngine(self.runtime, runner=boundary)
+        self.fix = FixEngine(self.runtime, self.engine, snapshot_dir=Path(self.temp.name) / 'recovery')
+        self.agent = NetworkAssuranceAgent(self.runtime, self.engine, self.fix,
+                                           store=self.store, profiles=self.profiles)
+        run = self.agent.investigate()
+        self.assertEqual(run.stage, 'awaiting_authorization')
+        self.assertEqual(run.proposals[0].actions[0]['desired'], ['1.1.1.1'])
+        self.assertEqual(self.mac.mutations, [])
+        self.agent.execute(run, self.agent.authorize(run))
+        self.assertEqual(run.outcome, 'verified')
+        self.assertEqual(self.mac.manual_dns, ['1.1.1.1'])
+        self.assertEqual(self.profiles.evaluate(self.engine.snapshot())['health'], 'healthy')
+
+    def test_private_target_never_queries_public_reference_resolver(self):
+        self.profiles.save(document())
+        self.mac.manual_dns = ['223.5.5.5']
+        self.mac.curl_exit = 28
+        self.runtime = ProfileConfig(self.config, self.profiles)
+        self.engine = DetectionEngine(self.runtime, runner=self.mac)
+        snapshot = self.engine.run_all()
+        self.assertFalse(any(Path(call[0]).name == 'dig' for call in self.mac.calls))
+        self.assertFalse(any(kind.startswith('dns_reference_') for _, kind, _ in snapshot['issues']))
+
+    def test_reference_dns_is_only_a_proposal_when_pinned_access_fails(self):
+        self.profiles.save({'schema': SCHEMA, 'name': '上网', 'targets': [
+            {'name': 'Google', 'url': 'https://www.google.com', 'expected_path': 'system'}]})
+        self.mac.manual_dns = ['223.5.5.5']
+        self.runtime = ProfileConfig(self.config, self.profiles)
+        def boundary(argv, timeout=10):
+            name = Path(argv[0]).name
+            if name == 'dscacheutil':
+                return CommandResult('ip_address: 69.171.235.22\n')
+            if name == 'dig':
+                return CommandResult('142.251.153.119\n')
+            if name == 'curl' and 'https://www.google.com' in argv:
+                return CommandResult('000', 'timeout', 28)
+            return self.mac(argv, timeout)
+        self.engine = DetectionEngine(self.runtime, runner=boundary)
+        self.fix = FixEngine(self.runtime, self.engine)
+        run = NetworkAssuranceAgent(self.runtime, self.engine, self.fix,
+                                    store=self.store, profiles=self.profiles).investigate()
+        self.assertFalse(run.proposals)
+        self.assertEqual(self.fix.repair_options(), {})
+        self.assertEqual(self.mac.mutations, [])
+
+    def test_dns_reference_repair_rolls_back_if_google_remains_unreachable(self):
+        self.profiles.save({'schema': SCHEMA, 'name': '上网', 'targets': [
+            {'name': 'Google', 'url': 'https://www.google.com', 'expected_path': 'system'}]})
+        self.mac.manual_dns = ['223.5.5.5']
+        self.runtime = ProfileConfig(self.config, self.profiles)
+        def boundary(argv, timeout=10):
+            name = Path(argv[0]).name
+            if name == 'dscacheutil':
+                return CommandResult('ip_address: 69.171.235.22\n')
+            if name == 'dig':
+                return CommandResult('142.251.153.119\n')
+            if name == 'curl' and 'https://www.google.com' in argv:
+                if '--resolve' in argv:
+                    return CommandResult('200')
+                return CommandResult('000', 'timeout', 28)
+            return self.mac(argv, timeout)
+        self.engine = DetectionEngine(self.runtime, runner=boundary)
+        self.fix = FixEngine(self.runtime, self.engine, snapshot_dir=Path(self.temp.name) / 'recovery')
+        self.agent = NetworkAssuranceAgent(self.runtime, self.engine, self.fix,
+                                           store=self.store, profiles=self.profiles)
+        run = self.agent.investigate()
+        self.assertEqual(run.stage, 'awaiting_authorization')
+        self.agent.execute(run, self.agent.authorize(run))
+        self.assertEqual(run.outcome, 'rolled_back')
+        self.assertEqual(self.mac.manual_dns, ['223.5.5.5'])
+
 
 class TargetPathTests(unittest.TestCase):
     def setUp(self):
@@ -369,6 +457,13 @@ class TargetPathTests(unittest.TestCase):
         self.assertEqual(result.stdout, '200 10.12.0.20')
         self.assertEqual(calls[0][1], '--disable')
         self.assertIn('--max-filesize', calls[0])
+        macos_limit = budget.run(lambda argv, timeout: CommandResult('200',
+            'Exceeded the maximum allowed file size (65536) with 65536 bytes', 56),
+            ['/usr/bin/curl', '--disable', '--globoff', '--', 'https://example.test'])
+        self.assertTrue(macos_limit.ok)
+        unrelated_failure = budget.run(lambda argv, timeout: CommandResult('200', 'connection reset', 56),
+            ['/usr/bin/curl', '--disable', '--globoff', '--', 'https://example.test'])
+        self.assertFalse(unrelated_failure.ok)
 
     def test_repair_regression_detects_path_scope_and_definition_changes(self):
         original = {'transport': 'ok', 'service': 'responding', 'applicable': True,

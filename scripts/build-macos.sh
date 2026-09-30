@@ -19,7 +19,7 @@ command -v uv >/dev/null || { echo 'uv is required.' >&2; exit 1; }
 [[ -z "$CONFIG" || ( "$CONFIG" == /* && -f "$CONFIG" ) ]] || { echo 'Configuration must be an existing absolute file.' >&2; exit 1; }
 [[ "$RELEASE" == 0 || -n "$CONFIG" ]] || { echo '--release requires --commercial-config.' >&2; exit 1; }
 uv sync --directory "$ROOT/apps/macos" --locked
-PYTHON="$ROOT/apps/macos/.venv/bin/python"
+PYTHON="$(uv run --directory "$ROOT/apps/macos" --no-sync python -c 'import sys; print(sys.executable)')"
 "$PYTHON" -c 'import platform,sys; assert sys.version_info[:2] == (3,12) and platform.machine() == "arm64"'
 "$PYTHON" "$ROOT/scripts/build-native-ipc.py"
 STAGING="$ROOT/build/macos-inputs"
